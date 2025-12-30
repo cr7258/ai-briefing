@@ -1,13 +1,14 @@
-import 'package:flutter/material.dart' hide ThemeData, ThemeMode, Theme, Scaffold, AppBar, Card, IconButton, CircularProgressIndicator, Divider, Colors;
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../models/briefing.dart';
 import '../providers/briefing_provider.dart';
+import '../widgets/briefing_cover.dart';
 import 'briefing_detail_screen.dart';
 
-/// Home screen showing list of daily briefings
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -17,290 +18,495 @@ class HomeScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      headers: [
-        AppBar(
-          title: const Row(
-            children: [
-              Icon(Icons.auto_awesome, size: 24),
-              SizedBox(width: 12),
-              Text('AI Briefing'),
-            ],
-          ),
-          trailing: [
-            IconButton.ghost(
-              icon: const Icon(Icons.refresh),
-              onPressed: () => ref.refresh(briefingListProvider),
+      extendBody: true, // For transparency behind navbar if we want
+      body: briefingsAsync.when(
+        data: (briefings) => _buildContent(context, briefings),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(child: Text('Error: $error')),
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+          color: theme.scaffoldBackgroundColor.withOpacity(0.95), // Slight transparency
+        ),
+        child: BottomNavigationBar(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          selectedItemColor: theme.colorScheme.primary,
+          unselectedItemColor: Colors.white38,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
+          type: BottomNavigationBarType.fixed,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Iconsax.home_1)),
+              activeIcon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Iconsax.home_1, fill: 1.0)),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Iconsax.discover_1)),
+              label: 'Discover',
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Iconsax.music_library_2)),
+              label: 'Library',
+            ),
+             BottomNavigationBarItem(
+              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Iconsax.profile_circle)),
+              label: 'Profile',
             ),
           ],
         ),
-      ],
-      child: briefingsAsync.when(
-        data: (briefings) => _buildBriefingList(context, ref, briefings),
-        loading: () => const Center(
-          child: CircularProgressIndicator(),
-        ),
-        error: (error, stack) => _buildErrorView(context, ref, error),
       ),
     );
   }
 
-  Widget _buildBriefingList(
-    BuildContext context,
-    WidgetRef ref,
-    List<Briefing> briefings,
-  ) {
+  Widget _buildContent(BuildContext context, List<Briefing> briefings) {
     if (briefings.isEmpty) {
-      return _buildEmptyView(context);
+      return const Center(child: Text("No briefings available"));
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(24),
-      itemCount: briefings.length,
-      itemBuilder: (context, index) {
-        final briefing = briefings[index];
-        final isToday = _isToday(briefing.date);
+    final featured = briefings.first;
+    final recents = briefings.skip(1).toList();
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _BriefingCard(
-            briefing: briefing,
-            isToday: isToday,
-            onTap: () => _navigateToDetail(context, briefing),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildEmptyView(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.article_outlined,
-            size: 80,
-            color: theme.colorScheme.mutedForeground,
-          ),
-          const SizedBox(height: 24),
-          Text(
-            '暂无简报',
-            style: theme.typography.h3,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '稍后再来查看每日 AI 新闻简报',
-            style: theme.typography.small.copyWith(
-              color: theme.colorScheme.mutedForeground,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorView(BuildContext context, WidgetRef ref, Object error) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 80,
-              color: theme.colorScheme.destructive,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              '加载失败',
-              style: theme.typography.h3,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error.toString(),
-              style: theme.typography.small.copyWith(
-                color: theme.colorScheme.mutedForeground,
+    return CustomScrollView(
+      slivers: [
+        // App Bar
+        SliverAppBar(
+          floating: true,
+          pinned: true,
+          elevation: 0,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          surfaceTintColor: Colors.transparent, // Disable Material 3 tint
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Iconsax.radar_2, color: Theme.of(context).primaryColor, size: 20),
               ),
-              textAlign: TextAlign.center,
+              const SizedBox(width: 12),
+              Text(
+                'AI Briefing',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Iconsax.notification),
+              onPressed: () {},
             ),
-            const SizedBox(height: 32),
-            PrimaryButton(
-              leading: const Icon(Icons.refresh),
-              onPressed: () => ref.refresh(briefingListProvider),
-              child: const Text('重试'),
-            ),
+            const SizedBox(width: 8),
           ],
         ),
-      ),
-    );
-  }
 
-  bool _isToday(DateTime date) {
-    final now = DateTime.now();
-    return date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day;
-  }
+        // Category Filter (Mock)
+        SliverToBoxAdapter(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Row(
+              children: [
+                _CategoryChip(label: 'All Updates', isSelected: true),
+                _CategoryChip(label: 'Generative AI'),
+                _CategoryChip(label: 'Robotics'),
+                _CategoryChip(label: 'Policy'),
+                _CategoryChip(label: 'Research'),
+              ],
+            ),
+          ),
+        ),
 
-  void _navigateToDetail(BuildContext context, Briefing briefing) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => BriefingDetailScreen(briefing: briefing),
-      ),
-    );
-  }
-}
-
-/// Card widget for displaying a briefing item
-class _BriefingCard extends StatelessWidget {
-  final Briefing briefing;
-  final bool isToday;
-  final VoidCallback onTap;
-
-  const _BriefingCard({
-    required this.briefing,
-    required this.isToday,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dateFormat = DateFormat('MM月dd日 EEEE', 'zh_CN');
-
-    return Card(
-      child: Clickable(
-        onPressed: onTap,
-        child: Container(
-          decoration: isToday
-              ? BoxDecoration(
-                  border: Border(
-                    left: BorderSide(
-                      color: theme.colorScheme.primary,
-                      width: 4,
-                    ),
-                  ),
-                )
-              : null,
+        // Hero Section
+        SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Date row with badges
                 Row(
                   children: [
-                    if (isToday)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '今日',
-                            style: theme.typography.small.copyWith(
-                              color: theme.colorScheme.primaryForeground,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
                     Text(
-                      dateFormat.format(briefing.date),
-                      style: theme.typography.small.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w500,
+                      'LATEST EPISODE',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        letterSpacing: 1.5,
+                        color: Colors.white54,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const Spacer(),
-                    if (briefing.hasAudio)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.headphones,
-                            size: 16,
-                            color: theme.colorScheme.mutedForeground,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            briefing.formattedDuration,
-                            style: theme.typography.small.copyWith(
-                              color: theme.colorScheme.mutedForeground,
-                            ),
-                          ),
-                        ],
-                      ),
+                    const Icon(Iconsax.timer_1, size: 14, color: Colors.white54),
+                    const SizedBox(width: 4),
+                    Text(
+                      featured.hasAudio ? featured.formattedDuration : '3 min',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54),
+                    ),
                   ],
-                ),
-                const SizedBox(height: 16),
-
-                // Title
-                Text(
-                  briefing.title,
-                  style: theme.typography.h4,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
+                _HeroCard(briefing: featured)
+                    .animate()
+                    .fadeIn(duration: 600.ms)
+                    .slideY(begin: 0.1, end: 0),
+              ],
+            ),
+          ),
+        ),
 
-                // Preview
+        // Recent Section Header
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
                 Text(
-                  _getPreview(briefing.summary),
-                  style: theme.typography.small.copyWith(
-                    color: theme.colorScheme.mutedForeground,
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+                  'Past Updates',
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-
-                const SizedBox(height: 16),
-
-                // Read more hint
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      '阅读全文',
-                      style: theme.typography.small.copyWith(
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_forward,
-                      size: 14,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ],
+                TextButton(
+                  onPressed: () {},
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).primaryColor,
+                  ),
+                  child: const Text('View Archive'),
                 ),
               ],
             ),
           ),
         ),
+
+        // Recent List
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final briefing = recents[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: _BriefingListTile(briefing: briefing)
+                    .animate(delay: (100 * index).ms)
+                    .fadeIn()
+                    .slideX(begin: 0.1, end: 0),
+              );
+            },
+            childCount: recents.length,
+          ),
+        ),
+        
+        const SliverToBoxAdapter(child: SizedBox(height: 100)),
+      ],
+    );
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+
+  const _CategoryChip({required this.label, this.isSelected = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? theme.primaryColor : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? theme.primaryColor : Colors.white.withOpacity(0.1),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.white70,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
       ),
     );
   }
+}
 
-  /// Get plain text preview from markdown
-  String _getPreview(String markdown) {
-    var text = markdown
-        .replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '')
-        .replaceAll(RegExp(r'\[([^\]]+)\]\([^)]+\)'), r'$1')
-        .replaceAll(RegExp(r'\*\*([^*]+)\*\*'), r'$1')
-        .replaceAll(RegExp(r'---+'), '')
-        .replaceAll('\n\n', '\n')
-        .trim();
+class _HeroCard extends StatelessWidget {
+  final Briefing briefing;
 
-    return text;
+  const _HeroCard({required this.briefing});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => BriefingDetailScreen(briefing: briefing)),
+      ),
+      child: Container(
+        height: 420, // Taller for more impact
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          color: Theme.of(context).cardTheme.color,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Cover Art Background
+            ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: BriefingCover(
+                date: briefing.date,
+                size: double.infinity,
+                showTitle: false,
+              ),
+            ),
+            
+            // Gradient Overlay
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.0),
+                    Colors.black.withOpacity(0.4),
+                    const Color(0xFF121212).withOpacity(0.95), // Match bg color
+                  ],
+                  stops: const [0.2, 0.5, 0.95],
+                ),
+              ),
+            ),
+
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // Tags Row
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'DAILY DIGEST',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        ),
+                        child: const Text(
+                          'AI NEWS',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 10,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  Text(
+                    briefing.title,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      height: 1.1,
+                      fontSize: 26,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  
+                  Text(
+                    DateFormat('MMMM dd, yyyy').format(briefing.date),
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Action Row
+                  Row(
+                    children: [
+                      // Play Button
+                      Expanded(
+                        child: Container(
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Iconsax.play, color: Colors.black, size: 24),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Play Episode',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              if (briefing.hasAudio) ...[
+                                const SizedBox(width: 8),
+                                Text(
+                                  '• ${briefing.formattedDuration}',
+                                  style: const TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Save Button
+                      Container(
+                        height: 56,
+                        width: 56,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        ),
+                        child: const Icon(Iconsax.save_add, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BriefingListTile extends StatelessWidget {
+  final Briefing briefing;
+
+  const _BriefingListTile({required this.briefing});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => BriefingDetailScreen(briefing: briefing)),
+      ),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardTheme.color?.withOpacity(0.3), // More transparent
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.03)),
+        ),
+        child: Row(
+          children: [
+            Hero(
+              tag: 'cover_list_${briefing.id}',
+              child: BriefingCover(
+                date: briefing.date,
+                size: 72,
+                showTitle: true,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    briefing.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Iconsax.calendar_1, size: 14, color: Theme.of(context).colorScheme.secondary),
+                      const SizedBox(width: 4),
+                      Text(
+                        DateFormat('MMM dd').format(briefing.date),
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                      const SizedBox(width: 12),
+                      if (briefing.hasAudio) ...[
+                        Icon(Iconsax.clock, size: 14, color: Colors.white38),
+                        const SizedBox(width: 4),
+                        Text(
+                          briefing.formattedDuration,
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: const Icon(Iconsax.play_circle, color: Colors.white, size: 20),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

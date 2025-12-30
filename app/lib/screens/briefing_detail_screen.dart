@@ -1,13 +1,13 @@
-import 'package:flutter/material.dart' hide ThemeData, ThemeMode, Theme, Scaffold, AppBar, Card, IconButton, CircularProgressIndicator, Divider, Colors;
+import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/briefing.dart';
 import '../widgets/audio_player.dart';
+import '../widgets/briefing_cover.dart';
 
-/// Screen showing full briefing content
 class BriefingDetailScreen extends StatelessWidget {
   final Briefing briefing;
 
@@ -19,169 +19,243 @@ class BriefingDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateFormat = DateFormat('yyyy 年 MM 月 dd 日 EEEE', 'zh_CN');
-
+    
     return Scaffold(
-      headers: [
-        AppBar(
-          leading: [
-            IconButton.ghost(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-          title: Text(
-            briefing.title,
-            style: theme.typography.small.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Iconsax.arrow_left_2),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-      ],
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        actions: [
+          IconButton(
+            icon: const Icon(Iconsax.heart),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Iconsax.share),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Iconsax.more),
+            onPressed: () {},
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Header section
-            _buildHeader(context, theme, dateFormat),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            // Big Cover Art
+            Hero(
+              tag: 'cover_${briefing.id}', // Match home screen tag if passed, or just unique
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.primaryColor.withOpacity(0.2),
+                      blurRadius: 40,
+                      spreadRadius: -10,
+                      offset: const Offset(0, 20),
+                    ),
+                  ],
+                ),
+                child: BriefingCover(
+                  date: briefing.date,
+                  size: 280,
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 32),
+            
+            // Title
+            Text(
+              briefing.title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.displaySmall?.copyWith(
+                height: 1.2,
+                fontSize: 26,
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Host/Meta Info Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                 CircleAvatar(
+                  radius: 12,
+                  backgroundColor: theme.primaryColor,
+                  child: const Icon(Iconsax.microphone_2, size: 14, color: Colors.black),
+                 ),
+                 const SizedBox(width: 8),
+                 Text(
+                   'AI Briefing Host',
+                   style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.secondary),
+                 ),
+                 Container(
+                   margin: const EdgeInsets.symmetric(horizontal: 12),
+                   width: 4,
+                   height: 4,
+                   decoration: BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
+                 ),
+                 Text(
+                   DateFormat('MMM dd, yyyy').format(briefing.date),
+                   style: theme.textTheme.bodyMedium,
+                 ),
+              ],
+            ),
+            
+            const SizedBox(height: 32),
+            
+            // Action Buttons Row (Save, Download, etc)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _ActionButton(icon: Iconsax.document_download, label: 'Save'),
+                const SizedBox(width: 24),
+                _ActionButton(icon: Iconsax.link_1, label: 'Copy Link'),
+                const SizedBox(width: 24),
+                _ActionButton(icon: Iconsax.message_text, label: 'Discuss'),
+              ],
+            ),
 
-            // Audio player
+            const SizedBox(height: 40),
+            
+            // Audio Player Section
             if (briefing.hasAudio) ...[
               BriefingAudioPlayer(
                 audioUrl: briefing.audioUrl!,
                 duration: briefing.audioDuration,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 48),
             ],
 
-            // Divider
-            const Divider(),
+            // Divider before text
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.white.withOpacity(0.1))),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    "EPISODE NOTES",
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      letterSpacing: 2.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white54,
+                    ),
+                  ),
+                ),
+                Expanded(child: Divider(color: Colors.white.withOpacity(0.1))),
+              ],
+            ),
+            
             const SizedBox(height: 24),
 
-            // Markdown content
+            // Markdown Content
             MarkdownBody(
               data: briefing.summary,
               selectable: true,
-              styleSheet: _buildMarkdownStyleSheet(theme),
+              styleSheet: MarkdownStyleSheet(
+                h1: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+                h2: theme.textTheme.titleLarge?.copyWith(
+                  height: 1.5,
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
+                ),
+                h3: theme.textTheme.titleMedium?.copyWith(
+                  height: 1.4,
+                  fontWeight: FontWeight.w600,
+                  color: theme.primaryColor,
+                ),
+                p: theme.textTheme.bodyLarge?.copyWith(
+                  height: 1.8,
+                  fontSize: 17, // Slightly larger for readability
+                  color: Colors.white.withOpacity(0.9),
+                ),
+                listBullet: theme.textTheme.bodyLarge?.copyWith(color: theme.primaryColor),
+                // Styled blockquote
+                blockquote: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.secondary,
+                  fontStyle: FontStyle.italic,
+                  height: 1.6,
+                ),
+                blockquoteDecoration: BoxDecoration(
+                  color: theme.colorScheme.secondary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border(
+                    left: BorderSide(color: theme.colorScheme.secondary, width: 4),
+                  ),
+                ),
+                blockquotePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                code: theme.textTheme.bodyMedium?.copyWith(
+                  fontFamily: 'monospace',
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                  fontSize: 14,
+                ),
+                codeblockPadding: const EdgeInsets.all(16),
+                codeblockDecoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                ),
+                a: TextStyle(
+                  color: theme.primaryColor,
+                  decoration: TextDecoration.underline,
+                  decorationColor: theme.primaryColor.withOpacity(0.5),
+                ),
+              ),
               onTapLink: (text, href, title) {
                 if (href != null) {
-                  _launchUrl(href);
+                  launchUrl(Uri.parse(href), mode: LaunchMode.externalApplication);
                 }
               },
             ),
-
-            // Bottom padding
+            
             const SizedBox(height: 64),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildHeader(
-    BuildContext context,
-    ThemeData theme,
-    DateFormat dateFormat,
-  ) {
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _ActionButton({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Date badge
-        Row(
-          children: [
-            Icon(
-              Icons.calendar_today,
-              size: 16,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              dateFormat.format(briefing.date),
-              style: theme.typography.small.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white70, size: 20),
         ),
-        const SizedBox(height: 16),
-
-        // Title
+        const SizedBox(height: 8),
         Text(
-          briefing.title,
-          style: theme.typography.h2,
+          label,
+          style: const TextStyle(
+            color: Colors.white54,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
-  }
-
-  /// Build custom markdown style sheet
-  MarkdownStyleSheet _buildMarkdownStyleSheet(ThemeData theme) {
-    return MarkdownStyleSheet(
-      h1: theme.typography.h1,
-      h2: theme.typography.h2.copyWith(
-        height: 1.4,
-      ),
-      h3: theme.typography.h3.copyWith(
-        height: 1.4,
-      ),
-      h4: theme.typography.h4,
-      p: theme.typography.base.copyWith(
-        height: 1.8,
-        color: theme.colorScheme.foreground,
-      ),
-      a: theme.typography.base.copyWith(
-        color: theme.colorScheme.primary,
-        decoration: TextDecoration.underline,
-        decorationColor: theme.colorScheme.primary,
-      ),
-      blockSpacing: 20,
-      h2Padding: const EdgeInsets.only(top: 32, bottom: 12),
-      h3Padding: const EdgeInsets.only(top: 24, bottom: 8),
-      horizontalRuleDecoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.border,
-            width: 1,
-          ),
-        ),
-      ),
-      blockquoteDecoration: BoxDecoration(
-        color: theme.colorScheme.muted,
-        borderRadius: BorderRadius.circular(8),
-        border: Border(
-          left: BorderSide(
-            color: theme.colorScheme.primary,
-            width: 4,
-          ),
-        ),
-      ),
-      blockquotePadding: const EdgeInsets.all(16),
-      codeblockDecoration: BoxDecoration(
-        color: theme.colorScheme.muted,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      codeblockPadding: const EdgeInsets.all(16),
-      code: TextStyle(
-        fontFamily: 'monospace',
-        color: theme.colorScheme.foreground,
-        backgroundColor: const Color(0x00000000), // transparent
-      ),
-      listBullet: theme.typography.base.copyWith(
-        color: theme.colorScheme.primary,
-      ),
-      listIndent: 24,
-    );
-  }
-
-  /// Launch URL in browser
-  Future<void> _launchUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
   }
 }

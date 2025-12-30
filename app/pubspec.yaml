@@ -11,7 +11,6 @@ dependencies:
     sdk: flutter
   
   # UI Components - shadcn_flutter
-  shadcn_flutter: ^0.0.41
   
   # Supabase
   supabase_flutter: ^2.8.0
@@ -34,6 +33,9 @@ dependencies:
   
   # Environment variables
   flutter_dotenv: ^5.2.1
+  flutter_animate: ^4.5.2
+  google_fonts: ^6.3.3
+  iconsax_flutter: ^1.0.1
 
 dev_dependencies:
   flutter_test:
