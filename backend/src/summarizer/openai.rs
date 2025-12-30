@@ -19,6 +19,9 @@ struct ChatRequest {
     messages: Vec<Message>,
     temperature: f32,
     max_tokens: u32,
+    /// MiniMax specific: separate thinking content from final output
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reasoning_split: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -88,39 +91,44 @@ impl OpenAISummarizer {
             .collect::<Vec<_>>()
             .join("\n\n---\n\n");
 
-        let system_prompt = r#"You are an AI news editor. Generate a daily AI news briefing in Chinese (Simplified).
+        let system_prompt = r###"你是一名AI新闻编辑，负责生成每日AI新闻简报。
 
-Output format (Markdown):
+【严格规则】你的回复必须以 ## 今日要闻 开头，禁止输出任何以下内容：
+- 禁止：分析过程、思考过程、解释说明
+- 禁止：类似"从文章中，我可以看到..."、"主要主题包括..."等分析性语句
+- 禁止：任何不属于最终简报的内容
+
+【输出格式】（必须严格遵守）：
 
 ## 今日要闻
 
-(Write 2-3 paragraphs summarizing the overall trends and key themes from today's AI news)
+（5～8句话概述今日AI领域的整体趋势和重要动态）
 
 ## 重点新闻
 
-### [News Title 1]
+### 新闻标题（中文）
 
-[Summary paragraph about this news item, 2-3 sentences]
+新闻内容摘要（3～6句话）
 
-[阅读原文](original_url)
+[阅读原文](原文链接)
 
 ---
 
-### [News Title 2]
+### 新闻标题（中文）
 
-[Summary paragraph about this news item, 2-3 sentences]
+新闻内容摘要（3～6句话）
 
-[阅读原文](original_url)
+[阅读原文](原文链接)
 
-(Continue for 5-8 most important news items)
+（选取5-8条最重要的新闻）
 
-Guidelines:
-- Write in Chinese (Simplified)
-- Focus on the most significant and impactful news
-- Each news item should have: Chinese title, summary paragraph, and "阅读原文" link
-- The "阅读原文" link must use the EXACT URL from the source
-- Keep summaries concise but informative
-- Highlight trends, breakthroughs, and industry-impacting news"#;
+【要求】
+- 全部使用中文（简体）
+- 中文、数字、英文之间用空格隔开（如：AI 技术、2024 年、OpenAI 发布）
+- 聚焦最重要、最有影响力的新闻
+- 每条新闻包含：中文标题、摘要段落、阅读原文链接
+- 链接必须使用原文的真实URL
+- 摘要简洁有信息量"###;
 
         let user_prompt = format!(
             "Today is {}. Generate a daily AI news briefing from these articles:\n\n{}",
@@ -141,6 +149,8 @@ Guidelines:
             ],
             temperature: 0.7,
             max_tokens: 4000,
+            // MiniMax: separate thinking content to reasoning_details field
+            reasoning_split: Some(true),
         };
 
         let url = format!("{}/chat/completions", self.base_url);

@@ -5,9 +5,9 @@ use tracing::{error, info};
 use crate::config::Config;
 use crate::crawler::RssCrawler;
 use crate::db::Repository;
-use crate::storage::SupabaseStorage;
+use crate::storage::AudioStorage;
 use crate::summarizer::OpenAISummarizer;
-use crate::tts::MiniMaxTTS;
+use crate::tts::VolcengineTTS;
 
 /// Execute the daily briefing job
 /// 1. Crawl news from all active sources
@@ -61,30 +61,37 @@ pub async fn run_daily_briefing_job(config: &Config, repo: &Repository) -> Resul
         .await?;
     info!("Saved briefing with ID: {}", briefing.id);
 
-    // Step 4: Generate audio with TTS
+    // Step 4: Generate audio with TTS (Volcengine)
     info!("Step 4/5: Generating audio with TTS");
-    let tts = MiniMaxTTS::new(
-        config.minimax_api_key.clone(),
-        config.minimax_model.clone(),
-        config.minimax_voice_id.clone(),
+    let tts = VolcengineTTS::new(
+        config.tts_base_url.clone(),
+        config.tts_appid.clone(),
+        config.tts_access_token.clone(),
+        config.tts_voice_type.clone(),
     );
 
     match tts.synthesize_long_text(&summary).await {
         Ok(tts_result) => {
             // Step 5: Upload audio to storage
             info!("Step 5/5: Uploading audio to storage");
-            let storage = SupabaseStorage::new(
-                config.supabase_url.clone(),
-                config.supabase_secret_key.clone(),
-            );
-
-            // Ensure bucket exists
-            if let Err(e) = storage.ensure_bucket_exists().await {
-                error!("Failed to ensure bucket exists: {}", e);
-            }
+            let storage = match AudioStorage::new(
+                config.tos_access_key.clone(),
+                config.tos_secret_key.clone(),
+                config.tos_endpoint.clone(),
+                config.tos_region.clone(),
+                config.tos_bucket.clone(),
+            )
+            .await
+            {
+                Ok(s) => s,
+                Err(e) => {
+                    error!("Failed to create storage client: {}", e);
+                    return Ok(());
+                }
+            };
 
             let filename = format!("{}.mp3", today);
-            match storage.upload_audio(&filename, tts_result.audio_data).await {
+            match storage.upload(&filename, tts_result.audio_data).await {
                 Ok(audio_url) => {
                     // Update briefing with audio info
                     repo.update_briefing_audio(

@@ -41,7 +41,7 @@ impl RssCrawler {
 
         let feed = parser::parse(&bytes[..]).context("Failed to parse RSS feed")?;
 
-        let cutoff_time = Utc::now() - Duration::hours(48);
+        let cutoff_time = Utc::now() - Duration::hours(24);
         let mut articles = Vec::new();
 
         for entry in feed.entries {
@@ -89,7 +89,7 @@ impl RssCrawler {
         }
 
         debug!(
-            "Fetched {} articles from {} (filtered by last 48h)",
+            "Fetched {} articles from {} (filtered by last 24h)",
             articles.len(),
             source.name
         );

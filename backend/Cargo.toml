@@ -41,7 +41,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Error handling
 anyhow = "1.0"
-thiserror = "1.0"
 
 # Task scheduling
 tokio-cron-scheduler = "0.13"
@@ -49,6 +48,7 @@ tokio-cron-scheduler = "0.13"
 # Markdown text extraction (for TTS)
 pulldown-cmark = "0.12"
 
-# Base64 encoding/decoding
-base64 = "0.22"
-
+# Volcengine TOS SDK
+ve-tos-rust-sdk = { version = "2.9", features = ["tokio-runtime"] }
+async-trait = "0.1"
+futures-core = "0.3"
