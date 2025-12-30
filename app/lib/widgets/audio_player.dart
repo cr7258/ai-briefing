@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ThemeData, ThemeMode, Theme, Scaffold, AppBar, Card, IconButton, CircularProgressIndicator, Divider, Colors;
 import 'package:just_audio/just_audio.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 /// Audio player widget for briefing playback
 class BriefingAudioPlayer extends StatefulWidget {
@@ -37,7 +38,7 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _error = 'Failed to load audio';
+        _error = '音频加载失败';
       });
     }
   }
@@ -56,29 +57,47 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer> {
       return _buildErrorView(theme);
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          // Play button and progress
-          Row(
-            children: [
-              _buildPlayButton(theme),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildProgressBar(theme),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            // Header
+            Row(
+              children: [
+                Icon(
+                  Icons.headphones,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '语音播报',
+                  style: theme.typography.small.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
 
-          // Time display
-          _buildTimeDisplay(theme),
-        ],
+            // Play button and progress
+            Row(
+              children: [
+                _buildPlayButton(theme),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: _buildProgressBar(theme),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Time display
+            _buildTimeDisplay(theme),
+          ],
+        ),
       ),
     );
   }
@@ -99,18 +118,18 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer> {
               shape: BoxShape.circle,
               color: theme.colorScheme.primary,
             ),
-            child: const Padding(
-              padding: EdgeInsets.all(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Colors.white,
+                color: theme.colorScheme.primaryForeground,
               ),
             ),
           );
         }
 
-        return GestureDetector(
-          onTap: () {
+        return Clickable(
+          onPressed: () {
             if (playing) {
               _player.pause();
             } else {
@@ -122,12 +141,26 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer> {
             height: 56,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: theme.colorScheme.primary,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.colorScheme.primary,
+                  theme.colorScheme.primary.withOpacity(0.8),
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.primary.withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Icon(
               playing ? Icons.pause : Icons.play_arrow,
-              color: Colors.white,
-              size: 32,
+              color: theme.colorScheme.primaryForeground,
+              size: 28,
             ),
           ),
         );
@@ -145,20 +178,46 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer> {
           stream: _player.positionStream,
           builder: (context, positionSnapshot) {
             final position = positionSnapshot.data ?? Duration.zero;
+            final progress = duration.inMilliseconds > 0
+                ? position.inMilliseconds / duration.inMilliseconds
+                : 0.0;
 
-            return SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 4,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-              ),
-              child: Slider(
-                value: position.inMilliseconds.toDouble(),
-                max: duration.inMilliseconds.toDouble().clamp(1, double.infinity),
-                onChanged: (value) {
-                  _player.seek(Duration(milliseconds: value.toInt()));
-                },
-              ),
+            return Column(
+              children: [
+                // Progress bar
+                GestureDetector(
+                  onTapDown: (details) {
+                    final box = context.findRenderObject() as RenderBox;
+                    final localPosition =
+                        box.globalToLocal(details.globalPosition);
+                    final percentage = localPosition.dx / box.size.width;
+                    final newPosition = duration * percentage;
+                    _player.seek(newPosition);
+                  },
+                  child: Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.muted,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: progress.clamp(0.0, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.colorScheme.primary,
+                              theme.colorScheme.primary.withOpacity(0.7),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         );
@@ -182,33 +241,35 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer> {
               children: [
                 Text(
                   _formatDuration(position),
-                  style: theme.textTheme.bodySmall,
+                  style: theme.typography.small.copyWith(
+                    color: theme.colorScheme.mutedForeground,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
                 // Speed control
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    StreamBuilder<double>(
-                      stream: _player.speedStream,
-                      builder: (context, snapshot) {
-                        final speed = snapshot.data ?? 1.0;
-                        return TextButton(
-                          onPressed: _cycleSpeed,
-                          child: Text(
-                            '${speed}x',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                StreamBuilder<double>(
+                  stream: _player.speedStream,
+                  builder: (context, snapshot) {
+                    final speed = snapshot.data ?? 1.0;
+                    return GhostButton(
+                      density: ButtonDensity.compact,
+                      onPressed: _cycleSpeed,
+                      child: Text(
+                        '${speed}x',
+                        style: theme.typography.small.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 Text(
                   _formatDuration(duration),
-                  style: theme.textTheme.bodySmall,
+                  style: theme.typography.small.copyWith(
+                    color: theme.colorScheme.mutedForeground,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ],
             );
@@ -219,38 +280,42 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer> {
   }
 
   Widget _buildErrorView(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.error_outline,
-            color: theme.colorScheme.error,
+    return Card(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: theme.colorScheme.destructive.withOpacity(0.3),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _error!,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onErrorContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: theme.colorScheme.destructive,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                _error!,
+                style: theme.typography.base.copyWith(
+                  color: theme.colorScheme.destructive,
+                ),
               ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _error = null;
-                _isLoading = true;
-              });
-              _initPlayer();
-            },
-            child: const Text('Retry'),
-          ),
-        ],
+            GhostButton(
+              onPressed: () {
+                setState(() {
+                  _error = null;
+                  _isLoading = true;
+                });
+                _initPlayer();
+              },
+              child: const Text('重试'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -268,4 +333,3 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer> {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }
-

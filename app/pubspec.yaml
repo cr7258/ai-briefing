@@ -10,6 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
   
+  # UI Components - shadcn_flutter
+  shadcn_flutter: ^0.0.41
+  
   # Supabase
   supabase_flutter: ^2.8.0
   

@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ThemeData, ThemeMode, Theme, Scaffold, AppBar, Card, IconButton, CircularProgressIndicator, Divider, Colors;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/supabase_config.dart';
-import 'config/theme.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
@@ -35,14 +35,11 @@ class AIBriefingApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return ShadcnApp(
       title: 'AI Briefing',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.dark,
       home: const HomeScreen(),
     );
   }
 }
-

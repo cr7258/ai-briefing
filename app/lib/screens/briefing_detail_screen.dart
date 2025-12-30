@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ThemeData, ThemeMode, Theme, Scaffold, AppBar, Card, IconButton, CircularProgressIndicator, Divider, Colors;
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/briefing.dart';
@@ -18,100 +19,138 @@ class BriefingDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateFormat = DateFormat('yyyy年MM月dd日 EEEE', 'zh_CN');
+    final dateFormat = DateFormat('yyyy 年 MM 月 dd 日 EEEE', 'zh_CN');
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // App bar
-          SliverAppBar(
-            expandedHeight: 120,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                briefing.title,
-                style: const TextStyle(fontSize: 14),
-              ),
-              titlePadding: const EdgeInsets.only(left: 56, right: 56, bottom: 16),
+      headers: [
+        AppBar(
+          leading: [
+            IconButton.ghost(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(),
             ),
-          ),
-
-          // Content
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Date
-                  Text(
-                    dateFormat.format(briefing.date),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Audio player
-                  if (briefing.hasAudio) ...[
-                    BriefingAudioPlayer(
-                      audioUrl: briefing.audioUrl!,
-                      duration: briefing.audioDuration,
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Markdown content
-                  MarkdownBody(
-                    data: briefing.summary,
-                    selectable: true,
-                    styleSheet: _buildMarkdownStyleSheet(theme),
-                    onTapLink: (text, href, title) {
-                      if (href != null) {
-                        _launchUrl(href);
-                      }
-                    },
-                  ),
-
-                  // Bottom padding
-                  const SizedBox(height: 48),
-                ],
-              ),
+          ],
+          title: Text(
+            briefing.title,
+            style: theme.typography.small.copyWith(
+              fontWeight: FontWeight.w600,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
+        ),
+      ],
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header section
+            _buildHeader(context, theme, dateFormat),
+            const SizedBox(height: 24),
+
+            // Audio player
+            if (briefing.hasAudio) ...[
+              BriefingAudioPlayer(
+                audioUrl: briefing.audioUrl!,
+                duration: briefing.audioDuration,
+              ),
+              const SizedBox(height: 32),
+            ],
+
+            // Divider
+            const Divider(),
+            const SizedBox(height: 24),
+
+            // Markdown content
+            MarkdownBody(
+              data: briefing.summary,
+              selectable: true,
+              styleSheet: _buildMarkdownStyleSheet(theme),
+              onTapLink: (text, href, title) {
+                if (href != null) {
+                  _launchUrl(href);
+                }
+              },
+            ),
+
+            // Bottom padding
+            const SizedBox(height: 64),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildHeader(
+    BuildContext context,
+    ThemeData theme,
+    DateFormat dateFormat,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Date badge
+        Row(
+          children: [
+            Icon(
+              Icons.calendar_today,
+              size: 16,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              dateFormat.format(briefing.date),
+              style: theme.typography.small.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Title
+        Text(
+          briefing.title,
+          style: theme.typography.h2,
+        ),
+      ],
     );
   }
 
   /// Build custom markdown style sheet
   MarkdownStyleSheet _buildMarkdownStyleSheet(ThemeData theme) {
     return MarkdownStyleSheet(
-      h1: theme.textTheme.headlineLarge,
-      h2: theme.textTheme.headlineMedium?.copyWith(
+      h1: theme.typography.h1,
+      h2: theme.typography.h2.copyWith(
         height: 1.4,
       ),
-      h3: theme.textTheme.titleLarge?.copyWith(
+      h3: theme.typography.h3.copyWith(
         height: 1.4,
       ),
-      p: theme.textTheme.bodyLarge,
-      a: theme.textTheme.bodyLarge?.copyWith(
+      h4: theme.typography.h4,
+      p: theme.typography.base.copyWith(
+        height: 1.8,
+        color: theme.colorScheme.foreground,
+      ),
+      a: theme.typography.base.copyWith(
         color: theme.colorScheme.primary,
         decoration: TextDecoration.underline,
+        decorationColor: theme.colorScheme.primary,
       ),
-      blockSpacing: 16,
-      h2Padding: const EdgeInsets.only(top: 24, bottom: 8),
-      h3Padding: const EdgeInsets.only(top: 20, bottom: 8),
+      blockSpacing: 20,
+      h2Padding: const EdgeInsets.only(top: 32, bottom: 12),
+      h3Padding: const EdgeInsets.only(top: 24, bottom: 8),
       horizontalRuleDecoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: theme.colorScheme.outline.withOpacity(0.3),
+            color: theme.colorScheme.border,
             width: 1,
           ),
         ),
       ),
       blockquoteDecoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
+        color: theme.colorScheme.muted,
         borderRadius: BorderRadius.circular(8),
         border: Border(
           left: BorderSide(
@@ -120,17 +159,21 @@ class BriefingDetailScreen extends StatelessWidget {
           ),
         ),
       ),
-      blockquotePadding: const EdgeInsets.all(12),
+      blockquotePadding: const EdgeInsets.all(16),
       codeblockDecoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
+        color: theme.colorScheme.muted,
         borderRadius: BorderRadius.circular(8),
       ),
-      codeblockPadding: const EdgeInsets.all(12),
+      codeblockPadding: const EdgeInsets.all(16),
       code: TextStyle(
         fontFamily: 'monospace',
-        color: theme.colorScheme.onSurface,
-        backgroundColor: Colors.transparent,
+        color: theme.colorScheme.foreground,
+        backgroundColor: const Color(0x00000000), // transparent
       ),
+      listBullet: theme.typography.base.copyWith(
+        color: theme.colorScheme.primary,
+      ),
+      listIndent: 24,
     );
   }
 
@@ -142,4 +185,3 @@ class BriefingDetailScreen extends StatelessWidget {
     }
   }
 }
-

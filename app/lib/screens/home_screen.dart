@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ThemeData, ThemeMode, Theme, Scaffold, AppBar, Card, IconButton, CircularProgressIndicator, Divider, Colors;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../models/briefing.dart';
 import '../providers/briefing_provider.dart';
@@ -13,21 +14,31 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final briefingsAsync = ref.watch(briefingListProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Briefing'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.refresh(briefingListProvider),
-            tooltip: 'Refresh',
+      headers: [
+        AppBar(
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome, size: 24),
+              SizedBox(width: 12),
+              Text('AI Briefing'),
+            ],
           ),
-        ],
-      ),
-      body: briefingsAsync.when(
+          trailing: [
+            IconButton.ghost(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => ref.refresh(briefingListProvider),
+            ),
+          ],
+        ),
+      ],
+      child: briefingsAsync.when(
         data: (briefings) => _buildBriefingList(context, ref, briefings),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: CircularProgressIndicator(),
+        ),
         error: (error, stack) => _buildErrorView(context, ref, error),
       ),
     );
@@ -42,49 +53,47 @@ class HomeScreen extends ConsumerWidget {
       return _buildEmptyView(context);
     }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(briefingListProvider);
-      },
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: briefings.length,
-        itemBuilder: (context, index) {
-          final briefing = briefings[index];
-          final isToday = _isToday(briefing.date);
+    return ListView.builder(
+      padding: const EdgeInsets.all(24),
+      itemCount: briefings.length,
+      itemBuilder: (context, index) {
+        final briefing = briefings[index];
+        final isToday = _isToday(briefing.date);
 
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _BriefingCard(
-              briefing: briefing,
-              isToday: isToday,
-              onTap: () => _navigateToDetail(context, briefing),
-            ),
-          );
-        },
-      ),
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _BriefingCard(
+            briefing: briefing,
+            isToday: isToday,
+            onTap: () => _navigateToDetail(context, briefing),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildEmptyView(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.article_outlined,
-            size: 64,
-            color: Theme.of(context).colorScheme.outline,
+            size: 80,
+            color: theme.colorScheme.mutedForeground,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text(
-            'No briefings yet',
-            style: Theme.of(context).textTheme.titleMedium,
+            '暂无简报',
+            style: theme.typography.h3,
           ),
           const SizedBox(height: 8),
           Text(
-            'Check back later for the daily AI news briefing',
-            style: Theme.of(context).textTheme.bodyMedium,
+            '稍后再来查看每日 AI 新闻简报',
+            style: theme.typography.small.copyWith(
+              color: theme.colorScheme.mutedForeground,
+            ),
           ),
         ],
       ),
@@ -92,6 +101,7 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildErrorView(BuildContext context, WidgetRef ref, Object error) {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -100,25 +110,27 @@ class HomeScreen extends ConsumerWidget {
           children: [
             Icon(
               Icons.error_outline,
-              size: 64,
-              color: Theme.of(context).colorScheme.error,
+              size: 80,
+              color: theme.colorScheme.destructive,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
-              'Failed to load briefings',
-              style: Theme.of(context).textTheme.titleMedium,
+              '加载失败',
+              style: theme.typography.h3,
             ),
             const SizedBox(height: 8),
             Text(
               error.toString(),
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: theme.typography.small.copyWith(
+                color: theme.colorScheme.mutedForeground,
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
+            const SizedBox(height: 32),
+            PrimaryButton(
+              leading: const Icon(Icons.refresh),
               onPressed: () => ref.refresh(briefingListProvider),
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              child: const Text('重试'),
             ),
           ],
         ),
@@ -160,9 +172,8 @@ class _BriefingCard extends StatelessWidget {
     final dateFormat = DateFormat('MM月dd日 EEEE', 'zh_CN');
 
     return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
+      child: Clickable(
+        onPressed: onTap,
         child: Container(
           decoration: isToday
               ? BoxDecoration(
@@ -175,37 +186,39 @@ class _BriefingCard extends StatelessWidget {
                 )
               : null,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Date row
+                // Date row with badges
                 Row(
                   children: [
                     if (isToday)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        margin: const EdgeInsets.only(right: 8),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          '今日',
-                          style: TextStyle(
-                            color: theme.colorScheme.onPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '今日',
+                            style: theme.typography.small.copyWith(
+                              color: theme.colorScheme.primaryForeground,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
                     Text(
                       dateFormat.format(briefing.date),
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      style: theme.typography.small.copyWith(
                         color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const Spacer(),
@@ -216,36 +229,59 @@ class _BriefingCard extends StatelessWidget {
                           Icon(
                             Icons.headphones,
                             size: 16,
-                            color: theme.colorScheme.outline,
+                            color: theme.colorScheme.mutedForeground,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 6),
                           Text(
                             briefing.formattedDuration,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.outline,
+                            style: theme.typography.small.copyWith(
+                              color: theme.colorScheme.mutedForeground,
                             ),
                           ),
                         ],
                       ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
                 // Title
                 Text(
                   briefing.title,
-                  style: theme.textTheme.titleLarge,
+                  style: theme.typography.h4,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
 
                 // Preview
                 Text(
                   _getPreview(briefing.summary),
-                  style: theme.textTheme.bodyMedium,
+                  style: theme.typography.small.copyWith(
+                    color: theme.colorScheme.mutedForeground,
+                  ),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
+                ),
+
+                const SizedBox(height: 16),
+
+                // Read more hint
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      '阅读全文',
+                      style: theme.typography.small.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.arrow_forward,
+                      size: 14,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -257,7 +293,6 @@ class _BriefingCard extends StatelessWidget {
 
   /// Get plain text preview from markdown
   String _getPreview(String markdown) {
-    // Remove markdown syntax for preview
     var text = markdown
         .replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '')
         .replaceAll(RegExp(r'\[([^\]]+)\]\([^)]+\)'), r'$1')
@@ -269,4 +304,3 @@ class _BriefingCard extends StatelessWidget {
     return text;
   }
 }
-
