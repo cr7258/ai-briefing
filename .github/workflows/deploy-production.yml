@@ -28,6 +28,12 @@ jobs:
         working-directory: ./app
         run: flutter pub get
 
+      - name: Create .env file
+        working-directory: ./app
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
+          echo "SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" >> .env
+
       - name: Build Flutter Web
         working-directory: ./app
         run: flutter build web --release
