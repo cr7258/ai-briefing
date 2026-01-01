@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/briefing.dart';
 import '../theme/app_theme.dart';
+import '../responsive/responsive.dart';
 import '../widgets/audio_player.dart';
 import '../widgets/briefing_cover.dart';
 
@@ -43,7 +44,7 @@ class BriefingDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     
                     // Audio Player
                     if (briefing.hasAudio) ...[
@@ -51,13 +52,13 @@ class BriefingDetailScreen extends StatelessWidget {
                         audioUrl: briefing.audioUrl!,
                         duration: briefing.audioDuration,
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 28),
                     ],
 
                     // Episode Notes Header
                     _buildSectionDivider(context, 'EPISODE NOTES'),
                     
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
 
                     // Markdown Content
                     MarkdownBody(
@@ -130,7 +131,7 @@ class BriefingDetailScreen extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 60, 24, 0),
+          padding: const EdgeInsets.fromLTRB(24, 48, 24, 0),
           child: Column(
             children: [
               // Cover Art with glow effect
@@ -138,37 +139,37 @@ class BriefingDetailScreen extends StatelessWidget {
                 tag: 'cover_${briefing.id}',
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
                         color: AppTheme.primary.withOpacity(0.15),
-                        blurRadius: 60,
+                        blurRadius: 40,
                         spreadRadius: -10,
-                        offset: const Offset(0, 30),
+                        offset: const Offset(0, 20),
                       ),
                     ],
                   ),
                   child: BriefingCover(
                     date: briefing.date,
-                    size: 260,
+                    size: Responsive.detailCoverSize(context),
                     showWaveform: true,
                   ),
                 ),
               ),
               
-              const SizedBox(height: 32),
+              const SizedBox(height: 20),
               
               // Title
               Text(
                 briefing.title,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.displaySmall?.copyWith(
+                style: theme.textTheme.headlineMedium?.copyWith(
                   height: 1.2,
-                  letterSpacing: -0.5,
+                  letterSpacing: -0.3,
                 ),
               ),
               
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               
               // Meta Info Row
               Row(
@@ -225,7 +226,7 @@ class BriefingDetailScreen extends StatelessWidget {
                 ],
               ),
               
-              const SizedBox(height: 28),
+              const SizedBox(height: 16),
               
               // Quick Action Buttons
               Row(
@@ -236,13 +237,13 @@ class BriefingDetailScreen extends StatelessWidget {
                     label: 'Save',
                     onTap: () {},
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 32),
                   _QuickActionButton(
                     icon: Iconsax.link_1,
                     label: 'Share',
                     onTap: () {},
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 32),
                   _QuickActionButton(
                     icon: Iconsax.message_text_1,
                     label: 'Notes',
@@ -250,8 +251,6 @@ class BriefingDetailScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              
-              const SizedBox(height: 8),
             ],
           ),
         ),
@@ -428,20 +427,20 @@ class _QuickActionButton extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppTheme.surfaceVariant,
               shape: BoxShape.circle,
               border: Border.all(color: AppTheme.border),
             ),
-            child: Icon(icon, color: AppTheme.textSecondary, size: 20),
+            child: Icon(icon, color: AppTheme.textSecondary, size: 18),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             label,
             style: const TextStyle(
               color: AppTheme.textTertiary,
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
           ),

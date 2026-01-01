@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../models/briefing.dart';
 import '../providers/briefing_provider.dart';
 import '../theme/app_theme.dart';
+import '../responsive/responsive.dart';
 import '../widgets/briefing_cover.dart';
 import 'briefing_detail_screen.dart';
 
@@ -523,6 +524,8 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final heroHeight = Responsive.heroCardHeight(context);
+    
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -537,7 +540,7 @@ class _HeroCard extends StatelessWidget {
           ),
         ),
         child: Container(
-          height: 400,
+          height: heroHeight,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(28),
             color: AppTheme.surface,
@@ -582,7 +585,7 @@ class _HeroCard extends StatelessWidget {
 
               // Content
               Padding(
-                padding: const EdgeInsets.all(28),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -632,10 +635,10 @@ class _HeroCard extends StatelessWidget {
                             duration: briefing.hasAudio ? briefing.formattedDuration : null,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        _CircleButton(icon: Iconsax.save_add),
+                        const SizedBox(width: 10),
+                        _CircleButton(icon: Iconsax.save_add, size: 48),
                         const SizedBox(width: 8),
-                        _CircleButton(icon: Iconsax.share),
+                        _CircleButton(icon: Iconsax.share, size: 48),
                       ],
                     ),
                   ],
@@ -732,20 +735,21 @@ class _PlayButton extends StatelessWidget {
 
 class _CircleButton extends StatelessWidget {
   final IconData icon;
+  final double size;
 
-  const _CircleButton({required this.icon});
+  const _CircleButton({required this.icon, this.size = 54});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 54,
-      width: 54,
+      height: size,
+      width: size,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white.withOpacity(0.15)),
       ),
-      child: Icon(icon, color: Colors.white, size: 22),
+      child: Icon(icon, color: Colors.white, size: size * 0.4),
     );
   }
 }

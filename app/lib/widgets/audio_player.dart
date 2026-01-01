@@ -4,6 +4,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../theme/app_theme.dart';
+import '../responsive/responsive.dart';
 
 class BriefingAudioPlayer extends StatefulWidget {
   final String audioUrl;
@@ -75,34 +76,37 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
       return _buildErrorState();
     }
 
+    final padding = Responsive.cardPadding(context);
+    final spacing = Responsive.sectionSpacing(context);
+    
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppTheme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Column(
         children: [
           // Waveform Visualization
-          _buildWaveformProgress(),
+          _buildWaveformProgress(context),
           
-          const SizedBox(height: 24),
+          SizedBox(height: spacing),
           
           // Time Display
           _buildTimeDisplay(),
           
-          const SizedBox(height: 24),
+          SizedBox(height: spacing),
           
           // Controls Row
-          _buildControls(),
+          _buildControls(context),
         ],
       ),
     );
@@ -171,7 +175,9 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
     );
   }
 
-  Widget _buildWaveformProgress() {
+  Widget _buildWaveformProgress(BuildContext parentContext) {
+    final waveformHeight = Responsive.waveformHeight(parentContext);
+    
     return StreamBuilder<Duration?>(
       stream: _player.durationStream,
       builder: (context, durationSnapshot) {
@@ -202,7 +208,7 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: SizedBox(
-                      height: 60,
+                      height: waveformHeight,
                       child: CustomPaint(
                         size: Size.infinite,
                         painter: _WaveformPainter(
@@ -264,7 +270,12 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
     );
   }
 
-  Widget _buildControls() {
+  Widget _buildControls(BuildContext parentContext) {
+    final playBtnSize = Responsive.playButtonSize(parentContext);
+    final ctrlBtnSize = Responsive.controlButtonSize(parentContext);
+    final isMobile = Responsive.isMobile(parentContext);
+    final spacing = isMobile ? 12.0 : 16.0;
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -295,19 +306,19 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
           },
         ),
         
-        const SizedBox(width: 20),
+        SizedBox(width: spacing),
         
         // Rewind 15s
         _ControlButton(
           icon: Iconsax.backward_15_seconds,
-          size: 48,
+          size: ctrlBtnSize,
           onTap: () {
             final newPos = _player.position - const Duration(seconds: 15);
             _player.seek(newPos < Duration.zero ? Duration.zero : newPos);
           },
         ),
         
-        const SizedBox(width: 16),
+        SizedBox(width: spacing - 4),
         
         // Play/Pause Button
         StreamBuilder<PlayerState>(
@@ -319,16 +330,16 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
 
             if (_isLoading || processingState == ProcessingState.loading) {
               return Container(
-                width: 72,
-                height: 72,
+                width: playBtnSize,
+                height: playBtnSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppTheme.primary,
                 ),
                 child: const Center(
                   child: SizedBox(
-                    width: 28,
-                    height: 28,
+                    width: 24,
+                    height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 3,
                       color: Colors.black,
@@ -353,8 +364,8 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
                   return Transform.scale(
                     scale: scale,
                     child: Container(
-                      width: 72,
-                      height: 72,
+                      width: playBtnSize,
+                      height: playBtnSize,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: const LinearGradient(
@@ -365,15 +376,15 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
                         boxShadow: [
                           BoxShadow(
                             color: AppTheme.primary.withOpacity(playing ? 0.5 : 0.3),
-                            blurRadius: playing ? 24 : 16,
-                            offset: const Offset(0, 8),
+                            blurRadius: playing ? 20 : 12,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
                       child: Icon(
                         playing ? Iconsax.pause : Iconsax.play,
                         color: Colors.black,
-                        size: 32,
+                        size: 26,
                       ),
                     ),
                   );
@@ -383,23 +394,23 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
           },
         ),
         
-        const SizedBox(width: 16),
+        SizedBox(width: spacing - 4),
         
         // Forward 15s
         _ControlButton(
           icon: Iconsax.forward_15_seconds,
-          size: 48,
+          size: ctrlBtnSize,
           onTap: () {
             _player.seek(_player.position + const Duration(seconds: 15));
           },
         ),
         
-        const SizedBox(width: 20),
+        SizedBox(width: spacing),
         
         // More Options
         _ControlButton(
           icon: Iconsax.more,
-          size: 44,
+          size: ctrlBtnSize - 4,
           onTap: () {},
         ),
       ],
