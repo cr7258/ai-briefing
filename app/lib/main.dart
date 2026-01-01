@@ -24,12 +24,17 @@ void main() async {
     anonKey: SupabaseConfig.anonKey,
   );
 
-  // Configure Status Bar for iOS/Android
+  // Configure Status Bar for OLED black theme
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent, // Transparent status bar
-    statusBarIconBrightness: Brightness.light, // For Android (light icons)
-    statusBarBrightness: Brightness.dark, // For iOS (dark background = light icons)
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
+    systemNavigationBarColor: Colors.black,
+    systemNavigationBarIconBrightness: Brightness.light,
   ));
+
+  // Enable edge-to-edge on Android
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   runApp(
     const ProviderScope(
