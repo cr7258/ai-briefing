@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::Local;
+use chrono::{DateTime, Local, NaiveDate, NaiveTime, TimeZone, Utc};
 use tracing::{error, info};
 
 use crate::config::Config;
@@ -10,32 +10,64 @@ use crate::summarizer::OpenAISummarizer;
 use crate::tts::VolcengineTTS;
 
 /// Execute the daily briefing job
+/// 
+/// # Arguments
+/// * `config` - Application configuration
+/// * `repo` - Database repository
+/// * `target_date` - Optional specific date to generate briefing for (defaults to today)
+/// * `hours_back` - Optional hours to look back for articles (defaults to config value)
+/// 
+/// Steps:
 /// 1. Crawl news from all active sources
 /// 2. Generate AI summary
 /// 3. Generate audio with TTS
 /// 4. Upload audio to storage
 /// 5. Save briefing to database
-pub async fn run_daily_briefing_job(config: &Config, repo: &Repository) -> Result<()> {
-    let today = Local::now().date_naive();
-    info!("Starting daily briefing job for {}", today);
+pub async fn run_daily_briefing_job(
+    config: &Config,
+    repo: &Repository,
+    target_date: Option<NaiveDate>,
+    hours_back: Option<i64>,
+) -> Result<()> {
+    let briefing_date = target_date.unwrap_or_else(|| Local::now().date_naive());
+    let hours = hours_back.unwrap_or(config.news_hours_back);
+    
+    // Calculate end_time: if target_date is specified, use end of that day (23:59:59 UTC)
+    // Otherwise use current time
+    let end_time: Option<DateTime<Utc>> = target_date.map(|date| {
+        let end_of_day = NaiveTime::from_hms_opt(23, 59, 59).unwrap();
+        Utc.from_utc_datetime(&date.and_time(end_of_day))
+    });
+    
+    if let Some(end) = end_time {
+        info!(
+            "Starting daily briefing job for {} (fetching {} hours before {})",
+            briefing_date, hours, end
+        );
+    } else {
+        info!(
+            "Starting daily briefing job for {} (fetching last {} hours)",
+            briefing_date, hours
+        );
+    }
 
-    // Check if briefing already exists for today
-    if let Some(existing) = repo.get_briefing_by_date(today).await? {
+    // Check if briefing already exists for the target date
+    if let Some(existing) = repo.get_briefing_by_date(briefing_date).await? {
         if existing.audio_url.is_some() {
-            info!("Briefing for {} already exists with audio, skipping", today);
+            info!("Briefing for {} already exists with audio, skipping", briefing_date);
             return Ok(());
         }
         info!(
             "Briefing for {} exists but without audio, will update",
-            today
+            briefing_date
         );
     }
 
     // Step 1: Crawl news
-    info!("Step 1/5: Crawling news sources");
+    info!("Step 1/5: Crawling news sources (last {} hours)", hours);
     let sources = repo.get_active_sources().await?;
     let crawler = RssCrawler::new();
-    let articles = crawler.fetch_all(&sources).await;
+    let articles = crawler.fetch_all(&sources, hours, end_time).await;
 
     if articles.is_empty() {
         info!("No articles found, skipping briefing generation");
@@ -52,12 +84,12 @@ pub async fn run_daily_briefing_job(config: &Config, repo: &Repository) -> Resul
         config.openai_model.clone(),
     );
     let summary = summarizer.generate_summary(&articles).await?;
-    let title = summarizer.generate_title();
+    let title = summarizer.generate_title(briefing_date);
 
     // Step 3: Save briefing to database (without audio first)
     info!("Step 3/5: Saving briefing to database");
     let briefing = repo
-        .upsert_briefing(today, title.clone(), summary.clone(), None, None)
+        .upsert_briefing(briefing_date, title.clone(), summary.clone(), None, None)
         .await?;
     info!("Saved briefing with ID: {}", briefing.id);
 
@@ -90,7 +122,7 @@ pub async fn run_daily_briefing_job(config: &Config, repo: &Repository) -> Resul
                 }
             };
 
-            let filename = format!("{}.mp3", today);
+            let filename = format!("{}.mp3", briefing_date);
             match storage.upload(&filename, tts_result.audio_data).await {
                 Ok(audio_url) => {
                     // Update briefing with audio info

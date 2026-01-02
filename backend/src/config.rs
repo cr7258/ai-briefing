@@ -19,6 +19,8 @@ pub struct Config {
     pub tos_region: String,
     pub tos_bucket: String,
     pub cron_schedule: String,
+    // News crawling configuration
+    pub news_hours_back: i64,
 }
 
 impl Config {
@@ -57,6 +59,10 @@ impl Config {
                 .context("TOS_BUCKET is required")?,
             cron_schedule: std::env::var("CRON_SCHEDULE")
                 .unwrap_or_else(|_| "0 0 22 * * *".to_string()), // Default: 22:00 UTC = 06:00 Beijing
+            news_hours_back: std::env::var("NEWS_HOURS_BACK")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(24), // Default: 24 hours
         })
     }
 }

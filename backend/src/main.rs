@@ -8,6 +8,7 @@ mod summarizer;
 mod tts;
 
 use anyhow::Result;
+use chrono::{Datelike, NaiveDate};
 use sea_orm::Database;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info};
@@ -17,8 +18,84 @@ use crate::config::Config;
 use crate::db::Repository;
 use crate::jobs::run_daily_briefing_job;
 
+/// Parse command line arguments
+struct Args {
+    run_now: bool,
+    run_on_start: bool,
+    target_date: Option<NaiveDate>,
+    hours_back: Option<i64>,
+}
+
+fn parse_args() -> Args {
+    let args: Vec<String> = std::env::args().collect();
+    
+    let run_now = args.iter().any(|a| a == "--run-now");
+    let run_on_start = args.iter().any(|a| a == "--run-on-start");
+    
+    // Parse --date YYYY-MM-DD or --date MM-DD (assumes current year)
+    let target_date = args
+        .iter()
+        .position(|a| a == "--date")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|date_str| {
+            // Try full format first: YYYY-MM-DD
+            if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+                return Some(date);
+            }
+            // Try short format: MM-DD (use current year)
+            if let Ok(date) = NaiveDate::parse_from_str(
+                &format!("{}-{}", chrono::Local::now().year(), date_str),
+                "%Y-%m-%d",
+            ) {
+                return Some(date);
+            }
+            // Try short format: M-D
+            if let Ok(date) = NaiveDate::parse_from_str(
+                &format!("{}-{}", chrono::Local::now().year(), date_str),
+                "%Y-%-m-%-d",
+            ) {
+                return Some(date);
+            }
+            None
+        });
+    
+    // Parse --hours N
+    let hours_back = args
+        .iter()
+        .position(|a| a == "--hours")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|h| h.parse().ok());
+    
+    Args {
+        run_now,
+        run_on_start,
+        target_date,
+        hours_back,
+    }
+}
+
+fn print_usage() {
+    println!("Usage: ai-briefing-backend [OPTIONS]");
+    println!();
+    println!("Options:");
+    println!("  --run-now         Run job immediately and exit");
+    println!("  --run-on-start    Run job once on startup, then continue with scheduler");
+    println!("  --date DATE       Generate briefing for specific date (YYYY-MM-DD or MM-DD)");
+    println!("  --hours N         Fetch articles from the last N hours (default: 24)");
+    println!();
+    println!("Examples:");
+    println!("  ai-briefing-backend --run-now --date 2025-01-01 --hours 48");
+    println!("  ai-briefing-backend --run-now --date 01-01");
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Check for help flag
+    if std::env::args().any(|a| a == "--help" || a == "-h") {
+        print_usage();
+        return Ok(());
+    }
+
     // Initialize logging
     tracing_subscriber::registry()
         .with(
@@ -34,6 +111,9 @@ async fn main() -> Result<()> {
     let config = Config::from_env()?;
     info!("Configuration loaded successfully");
 
+    // Parse command line arguments
+    let args = parse_args();
+
     // Create database connection with SeaORM
     let mut opt = sea_orm::ConnectOptions::new(&config.database_url);
     opt.sqlx_logging(true)
@@ -43,15 +123,18 @@ async fn main() -> Result<()> {
 
     let repo = Repository::new(db.clone());
 
-    // Check command line arguments
-    let args: Vec<String> = std::env::args().collect();
-    let run_now = args.iter().any(|a| a == "--run-now");
-    let run_on_start = args.iter().any(|a| a == "--run-on-start");
-
-    if run_now {
+    if args.run_now {
         // Run job immediately and exit
-        info!("Running job immediately (--run-now flag)");
-        if let Err(e) = run_daily_briefing_job(&config, &repo).await {
+        let target_date = args.target_date;
+        let hours_back = args.hours_back;
+        
+        if let Some(date) = target_date {
+            info!("Running job for specific date: {} (--date flag)", date);
+        } else {
+            info!("Running job immediately (--run-now flag)");
+        }
+        
+        if let Err(e) = run_daily_briefing_job(&config, &repo, target_date, hours_back).await {
             error!("Job failed: {}", e);
             return Err(e);
         }
@@ -59,10 +142,10 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    if run_on_start {
+    if args.run_on_start {
         // Run job once on startup, then continue with scheduler
         info!("Running job on startup (--run-on-start flag)");
-        if let Err(e) = run_daily_briefing_job(&config, &repo).await {
+        if let Err(e) = run_daily_briefing_job(&config, &repo, None, None).await {
             error!("Initial job failed: {}", e);
             // Continue to scheduler even if initial job fails
         }
@@ -84,7 +167,7 @@ async fn main() -> Result<()> {
 
         Box::pin(async move {
             let repo = Repository::new(db);
-            if let Err(e) = run_daily_briefing_job(&config, &repo).await {
+            if let Err(e) = run_daily_briefing_job(&config, &repo, None, None).await {
                 error!("Daily briefing job failed: {}", e);
             }
         })

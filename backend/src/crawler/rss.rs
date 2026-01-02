@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
 use feed_rs::parser;
 use tracing::{debug, warn};
 
@@ -24,7 +24,17 @@ impl RssCrawler {
     }
 
     /// Fetch and parse RSS feed from a source
-    pub async fn fetch(&self, source: &news_source::Model) -> Result<Vec<Article>> {
+    /// 
+    /// # Arguments
+    /// * `source` - The news source to fetch from
+    /// * `hours_back` - Only include articles published within this many hours
+    /// * `end_time` - The end time for the time range (defaults to now)
+    pub async fn fetch(
+        &self,
+        source: &news_source::Model,
+        hours_back: i64,
+        end_time: Option<DateTime<Utc>>,
+    ) -> Result<Vec<Article>> {
         debug!("Fetching RSS feed: {} ({})", source.name, source.url);
 
         let response = self
@@ -41,13 +51,19 @@ impl RssCrawler {
 
         let feed = parser::parse(&bytes[..]).context("Failed to parse RSS feed")?;
 
-        let cutoff_time = Utc::now() - Duration::hours(24);
+        let end = end_time.unwrap_or_else(Utc::now);
+        let cutoff_time = end - Duration::hours(hours_back);
         let mut articles = Vec::new();
 
         for entry in feed.entries {
-            // Filter out old articles
+            // Filter articles by time range
             if let Some(published) = entry.published {
+                // Skip articles older than cutoff
                 if published < cutoff_time {
+                    continue;
+                }
+                // Skip articles newer than end_time (for historical queries)
+                if published > end {
                     continue;
                 }
             }
@@ -89,16 +105,27 @@ impl RssCrawler {
         }
 
         debug!(
-            "Fetched {} articles from {} (filtered by last 24h)",
+            "Fetched {} articles from {} (filtered by last {}h)",
             articles.len(),
-            source.name
+            source.name,
+            hours_back
         );
 
         Ok(articles)
     }
 
     /// Fetch articles from multiple sources
-    pub async fn fetch_all(&self, sources: &[news_source::Model]) -> Vec<Article> {
+    /// 
+    /// # Arguments
+    /// * `sources` - List of news sources to fetch from
+    /// * `hours_back` - Only include articles published within this many hours
+    /// * `end_time` - The end time for the time range (defaults to now)
+    pub async fn fetch_all(
+        &self,
+        sources: &[news_source::Model],
+        hours_back: i64,
+        end_time: Option<DateTime<Utc>>,
+    ) -> Vec<Article> {
         let mut all_articles = Vec::new();
 
         for source in sources {
@@ -106,7 +133,7 @@ impl RssCrawler {
                 continue;
             }
 
-            match self.fetch(source).await {
+            match self.fetch(source, hours_back, end_time).await {
                 Ok(articles) => {
                     all_articles.extend(articles);
                 }

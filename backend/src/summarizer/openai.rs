@@ -188,9 +188,9 @@ impl OpenAISummarizer {
     }
 
     /// Generate a title for the daily briefing
-    pub fn generate_title(&self) -> String {
-        let today = Local::now().format("%Y年%m月%d日").to_string();
-        format!("{} AI 日报", today)
+    pub fn generate_title(&self, date: chrono::NaiveDate) -> String {
+        let date_str = date.format("%Y年%m月%d日").to_string();
+        format!("{} AI 日报", date_str)
     }
 }
 
