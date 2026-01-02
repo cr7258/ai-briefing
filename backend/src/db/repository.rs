@@ -130,6 +130,7 @@ impl Repository {
         &self,
         briefing_id: Uuid,
         category: &str,
+        title: Option<String>,
         summary: String,
         audio_url: Option<String>,
         audio_duration: Option<i32>,
@@ -145,6 +146,7 @@ impl Repository {
         if let Some(existing) = existing {
             // Update existing
             let mut model: category_briefing::ActiveModel = existing.into();
+            model.title = Set(title);
             model.summary = Set(summary);
             model.audio_url = Set(audio_url);
             model.audio_duration = Set(audio_duration);
@@ -158,6 +160,7 @@ impl Repository {
             id: Set(Uuid::new_v4()),
             briefing_id: Set(Some(briefing_id)),
             category: Set(category.to_string()),
+            title: Set(title),
             summary: Set(summary),
             audio_url: Set(audio_url),
             audio_duration: Set(audio_duration),

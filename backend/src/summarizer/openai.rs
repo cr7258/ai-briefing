@@ -97,7 +97,7 @@ impl OpenAISummarizer {
 
 ## 重点新闻
 
-### 新闻标题（中文）
+### 原文标题
 
 新闻内容摘要（3～6句话）
 
@@ -108,10 +108,11 @@ impl OpenAISummarizer {
 （选取 8-10 条最重要的新闻，从各分类中精选）
 
 【要求】
+- 中文、数字、英文之间必须用空格隔开（如：发布 GPT-5 模型、提升 30% 性能）
+- 新闻标题：中文标题保留原样，英文标题翻译成中文，控制在 15 字左右
 - 从各分类（llm/agent/multimodal/coding/infra/robotics/research/apps/industry/cloud_native）中精选最重要的新闻
 - 优先选择：重大发布、突破性进展、行业影响大的事件
-- 全部使用中文（简体）
-- 中文、数字、英文之间用空格隔开
+- 摘要使用中文（简体）
 - 链接必须使用原文的真实 URL"###;
 
         let user_prompt = format!(
@@ -159,7 +160,7 @@ impl OpenAISummarizer {
 
 ## 详细新闻
 
-### 新闻标题（中文）
+### 原文标题
 
 新闻内容摘要（2～3 句话）
 
@@ -168,10 +169,11 @@ impl OpenAISummarizer {
 ---
 
 【要求】
+- 中文、数字、英文之间必须用空格隔开（如：发布 GPT-5 模型、提升 30% 性能）
+- 新闻标题：中文标题保留原样，英文标题翻译成中文，控制在 15 字左右
 - 有多少条新闻就展示多少条（最多 10 条）
 - 只输出新闻内容，禁止添加任何解释、说明、注释或请求更多内容的文字
-- 全部使用中文（简体）
-- 中文、数字、英文之间用空格隔开
+- 摘要使用中文（简体）
 - 链接必须使用原文的真实 URL"###,
             category_name, category_name
         );
@@ -235,12 +237,6 @@ impl OpenAISummarizer {
         info!("Generated summary with {} characters", summary.len());
 
         Ok(summary)
-    }
-
-    /// Generate a title for the daily briefing
-    pub fn generate_title(&self, date: chrono::NaiveDate, first_article_summary: &str) -> String {
-        let date_str = date.format("%Y-%m-%d").to_string();
-        format!("{} {}", date_str, first_article_summary)
     }
 }
 

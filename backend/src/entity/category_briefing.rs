@@ -8,6 +8,7 @@ pub struct Model {
     pub id: Uuid,
     pub briefing_id: Option<Uuid>,
     pub category: String,
+    pub title: Option<String>,
     #[sea_orm(column_type = "Text")]
     pub summary: String,
     pub audio_url: Option<String>,

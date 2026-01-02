@@ -194,9 +194,9 @@ pub async fn run_daily_briefing_job(
         .generate_comprehensive_briefing(&classified_articles)
         .await?;
     
-    // Title: date + first article's summary
-    let first_summary = &classified_articles[0].summary;
-    let title = summarizer.generate_title(briefing_date, first_summary);
+    // Title: date + first article's title (from RSS)
+    let first_title = &classified_articles[0].title;
+    let title = format!("{} {}", briefing_date.format("%Y-%m-%d"), first_title);
 
     // ========================================
     // Step 4: Save briefing to database
@@ -254,10 +254,16 @@ pub async fn run_daily_briefing_job(
                 .await
             {
                 Ok(summary) => {
+                    // Generate title using first article
+                    let title = articles
+                        .first()
+                        .map(|a| format!("{} {}", briefing_date.format("%Y-%m-%d"), a.title));
+                    
                     // Save category briefing (without audio first)
                     repo.upsert_category_briefing(
                         briefing.id,
                         category,
+                        title,
                         summary.clone(),
                         None,
                         None,

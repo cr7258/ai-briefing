@@ -159,7 +159,7 @@ class CategoryBriefingScreen extends StatelessWidget {
 
               // Title
               Text(
-                '${categoryBriefing.categoryDisplayName} Daily',
+                categoryBriefing.title!,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineMedium?.copyWith(
                   height: 1.2,

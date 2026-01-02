@@ -429,7 +429,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                     // Title
                     Text(
-                      '$category Daily',
+                      categoryBriefing.title!,
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
@@ -1271,7 +1271,7 @@ class _CategoryBriefingTile extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '${categoryBriefing.categoryDisplayName} Daily',
+                      categoryBriefing.title!,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(

@@ -3,6 +3,7 @@ class CategoryBriefing {
   final String id;
   final String briefingId;
   final String category;
+  final String? title;
   final String summary;
   final String? audioUrl;
   final int? audioDuration;
@@ -12,6 +13,7 @@ class CategoryBriefing {
     required this.id,
     required this.briefingId,
     required this.category,
+    this.title,
     required this.summary,
     this.audioUrl,
     this.audioDuration,
@@ -24,6 +26,7 @@ class CategoryBriefing {
       id: json['id'] as String,
       briefingId: json['briefing_id'] as String,
       category: json['category'] as String,
+      title: json['title'] as String?,
       summary: json['summary'] as String,
       audioUrl: json['audio_url'] as String?,
       audioDuration: json['audio_duration'] as int?,
@@ -37,6 +40,7 @@ class CategoryBriefing {
       'id': id,
       'briefing_id': briefingId,
       'category': category,
+      'title': title,
       'summary': summary,
       'audio_url': audioUrl,
       'audio_duration': audioDuration,
