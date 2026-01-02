@@ -22,7 +22,6 @@ class BriefingCover extends StatelessWidget {
   Widget build(BuildContext context) {
     // Generate consistent gradient based on date
     final seed = date.year * 10000 + date.month * 100 + date.day;
-    final random = Random(seed);
     
     // Curated color palettes (more premium than random)
     final palettes = [
@@ -41,29 +40,43 @@ class BriefingCover extends StatelessWidget {
     final day = DateFormat('dd').format(date);
     final month = DateFormat('MMM').format(date).toUpperCase();
 
+    // Use LayoutBuilder when size is infinity to get actual constraints
+    if (size == double.infinity) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final actualSize = min(constraints.maxWidth, constraints.maxHeight);
+          return _buildCover(actualSize, seed, palette, day, month);
+        },
+      );
+    }
+
+    return _buildCover(size, seed, palette, day, month);
+  }
+
+  Widget _buildCover(double s, int seed, List<Color> palette, String day, String month) {
     return Container(
-      width: size,
-      height: size,
+      width: s,
+      height: s,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: palette,
         ),
-        borderRadius: BorderRadius.circular(size > 200 ? 24 : 16),
+        borderRadius: BorderRadius.circular(s > 200 ? 24 : 16),
         boxShadow: [
           BoxShadow(
             color: palette[0].withOpacity(0.4),
-            blurRadius: size > 200 ? 40 : 20,
+            blurRadius: s > 200 ? 40 : 20,
             offset: const Offset(0, 10),
             spreadRadius: -5,
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(size > 200 ? 24 : 16),
-      child: Stack(
-        children: [
+        borderRadius: BorderRadius.circular(s > 200 ? 24 : 16),
+        child: Stack(
+          children: [
             // Noise texture overlay
             Positioned.fill(
               child: CustomPaint(
@@ -96,8 +109,9 @@ class BriefingCover extends StatelessWidget {
                 bottom: 0,
                 left: 0,
                 right: 0,
-                height: size * 0.4,
+                height: s * 0.4,
                 child: CustomPaint(
+                  size: Size(s, s * 0.4),
                   painter: _WaveformPainter(
                     seed: seed,
                     color: Colors.white.withOpacity(0.2),
@@ -111,61 +125,61 @@ class BriefingCover extends StatelessWidget {
                 bottom: 0,
                 left: 0,
                 right: 0,
-                height: size * 0.6,
+                height: s * 0.6,
                 child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
                         Colors.black.withOpacity(0.5),
-                ],
-              ),
+                      ],
+                    ),
                   ),
-            ),
-          ),
+                ),
+              ),
           
             // Date display
-          if (showTitle)
+            if (showTitle)
               Positioned(
-                left: size > 200 ? 24 : 12,
-                bottom: size > 200 ? 24 : 12,
-              child: Column(
+                left: s > 200 ? 24 : 12,
+                bottom: s > 200 ? 24 : 12,
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    day,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      day,
                       style: TextStyle(
-                      color: Colors.white,
-                        fontSize: size > 200 ? 48 : (size > 100 ? 32 : 24),
+                        color: Colors.white,
+                        fontSize: s > 200 ? 48 : (s > 100 ? 32 : 24),
                         fontWeight: FontWeight.w800,
-                      height: 1.0,
+                        height: 1.0,
                         letterSpacing: -1,
+                      ),
                     ),
-                  ),
-                  Text(
-                    month,
+                    Text(
+                      month,
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
-                        fontSize: size > 200 ? 16 : (size > 100 ? 12 : 10),
+                        fontSize: s > 200 ? 16 : (s > 100 ? 12 : 10),
                         fontWeight: FontWeight.w700,
-                      letterSpacing: 2.0,
+                        letterSpacing: 2.0,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
             
             // AI Badge
-          Positioned(
-              top: size > 200 ? 20 : 10,
-              right: size > 200 ? 20 : 10,
+            Positioned(
+              top: s > 200 ? 20 : 10,
+              right: s > 200 ? 20 : 10,
               child: Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: size > 200 ? 12 : 8,
-                  vertical: size > 200 ? 6 : 4,
+                  horizontal: s > 200 ? 12 : 8,
+                  vertical: s > 200 ? 6 : 4,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.3),
@@ -179,21 +193,21 @@ class BriefingCover extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-              Icons.auto_awesome,
+                      Icons.auto_awesome,
                       color: Colors.white.withOpacity(0.9),
-                      size: size > 200 ? 14 : 10,
+                      size: s > 200 ? 14 : 10,
                     ),
-                    SizedBox(width: size > 200 ? 6 : 4),
+                    SizedBox(width: s > 200 ? 6 : 4),
                     Text(
                       'AI',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
-                        fontSize: size > 200 ? 11 : 8,
+                        fontSize: s > 200 ? 11 : 8,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
-            ),
-          ),
-        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

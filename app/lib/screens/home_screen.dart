@@ -6,11 +6,13 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
 
 import '../models/briefing.dart';
+import '../models/category_briefing.dart';
 import '../providers/briefing_provider.dart';
 import '../theme/app_theme.dart';
 import '../responsive/responsive.dart';
 import '../widgets/briefing_cover.dart';
 import 'briefing_detail_screen.dart';
+import 'category_briefing_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -182,6 +184,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return _buildEmptyState();
     }
 
+    // If a category is selected, show category view
+    if (_selectedCategory != null) {
+      return _buildCategoryContent(context, briefings, _selectedCategory!);
+    }
+
+    // Default: show all briefings
     final featured = briefings.first;
     final recents = briefings.skip(1).toList();
 
@@ -226,6 +234,334 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         
         // Bottom padding for nav bar
         const SliverToBoxAdapter(child: SizedBox(height: 120)),
+      ],
+    );
+  }
+
+  Widget _buildCategoryContent(BuildContext context, List<Briefing> briefings, String category) {
+    // Fetch category briefings for all dates
+    final categoryBriefingsAsync = ref.watch(
+      categoryBriefingsForCategoryProvider((briefings: briefings, category: category)),
+    );
+
+    return categoryBriefingsAsync.when(
+      data: (categoryBriefings) {
+        if (categoryBriefings.isEmpty) {
+          return _buildCategoryEmptyState(category);
+        }
+
+        final featured = categoryBriefings.first;
+        final recents = categoryBriefings.skip(1).toList();
+
+        return CustomScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            _buildAppBar(context),
+            
+            SliverToBoxAdapter(
+              child: _buildCategoryFilter(context),
+            ),
+
+            // Category Hero Section (like homepage)
+            SliverToBoxAdapter(
+              child: _buildCategoryHeroSection(context, featured, category),
+            ),
+
+            // Past Updates Header
+            SliverToBoxAdapter(
+              child: _buildSectionHeader(context, 'Past Updates'),
+            ),
+
+            // Category Briefing List
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final item = recents[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                    child: _CategoryBriefingTile(
+                      categoryBriefing: item.categoryBriefing,
+                      date: item.date,
+                    ).animate(delay: (80 * index).ms)
+                        .fadeIn(duration: 400.ms, curve: Curves.easeOut)
+                        .slideX(begin: 0.05, end: 0, curve: Curves.easeOut),
+                  );
+                },
+                childCount: recents.length,
+              ),
+            ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          ],
+        );
+      },
+      loading: () => CustomScrollView(
+        slivers: [
+          _buildAppBar(context),
+          SliverToBoxAdapter(child: _buildCategoryFilter(context)),
+          const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+          ),
+        ],
+      ),
+      error: (error, stack) => CustomScrollView(
+        slivers: [
+          _buildAppBar(context),
+          SliverToBoxAdapter(child: _buildCategoryFilter(context)),
+          SliverFillRemaining(child: _buildErrorState(error)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryHeroSection(BuildContext context, CategoryBriefingWithDate featured, String category) {
+    final categoryBriefing = featured.categoryBriefing;
+    final date = featured.date;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+      child: GestureDetector(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CategoryBriefingScreen(
+              categoryBriefing: categoryBriefing,
+              date: date,
+            ),
+          ),
+        ),
+        child: Container(
+          height: Responsive.heroCardHeight(context),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            color: AppTheme.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 32,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Gradient Background
+              ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppTheme.primary.withOpacity(0.8),
+                        AppTheme.primaryAlt.withOpacity(0.6),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Gradient Overlay
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.3),
+                      Colors.black.withOpacity(0.85),
+                    ],
+                    stops: const [0.3, 0.5, 1.0],
+                  ),
+                ),
+              ),
+
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Category Badge
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [AppTheme.primary, AppTheme.primaryAlt],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            category.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            'DAILY',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const Spacer(),
+
+                    // Title
+                    Text(
+                      '${category.toUpperCase()} Daily',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Date
+                    Text(
+                      DateFormat('MMMM dd, yyyy').format(date),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white60,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Play Button Row
+                    Row(
+                      children: [
+                        Flexible(
+                          child: categoryBriefing.hasAudio
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(28),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Iconsax.play, color: Colors.black, size: 16),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          'Play Episode',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '• ${categoryBriefing.formattedDuration}',
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(28),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Iconsax.document_text, color: Colors.black, size: 16),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          'Read',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                        ),
+                        const SizedBox(width: 8),
+                        _CircleButton(icon: Iconsax.save_add, size: 44),
+                        const SizedBox(width: 6),
+                        _CircleButton(icon: Iconsax.share, size: 44),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ).animate()
+          .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+          .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
+    );
+  }
+
+  Widget _buildCategoryEmptyState(String category) {
+    return CustomScrollView(
+      slivers: [
+        _buildAppBar(context),
+        SliverToBoxAdapter(child: _buildCategoryFilter(context)),
+        SliverFillRemaining(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceVariant,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Iconsax.document,
+                    color: AppTheme.textTertiary,
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'No ${category.toUpperCase()} updates yet',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Check back soon for updates in this category',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -332,7 +668,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildCategoryFilter(BuildContext context) {
-    final categories = ['All', 'LLMs', 'Agents', 'Research', 'Industry', 'Open Source'];
+    // "All" + dynamic categories from CategoryBriefing
+    final categories = ['all', ...CategoryBriefing.allCategories];
     
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -340,7 +677,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Row(
         children: categories.asMap().entries.map((entry) {
           final index = entry.key;
-          final label = entry.value;
+          final category = entry.value;
+          final label = category == 'all' ? 'All' : category.toUpperCase();
           final isSelected = _selectedCategoryIndex == index;
           
           return Padding(
@@ -378,6 +716,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }).toList(),
       ),
     );
+  }
+
+  /// Get selected category (null means "all")
+  String? get _selectedCategory {
+    if (_selectedCategoryIndex == 0) return null;
+    return CategoryBriefing.allCategories[_selectedCategoryIndex - 1];
   }
 
   Widget _buildHeroSection(BuildContext context, Briefing featured) {
@@ -840,6 +1184,141 @@ class _BriefingListTile extends StatelessWidget {
                 ),
                 child: Icon(
                   Iconsax.play,
+                  color: AppTheme.textPrimary,
+                  size: 18,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// List tile for category briefing
+class _CategoryBriefingTile extends StatelessWidget {
+  final CategoryBriefing categoryBriefing;
+  final DateTime date;
+
+  const _CategoryBriefingTile({
+    required this.categoryBriefing,
+    required this.date,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CategoryBriefingScreen(
+              categoryBriefing: categoryBriefing,
+              date: date,
+            ),
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: Row(
+            children: [
+              // Category Badge as Cover
+              Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppTheme.primary, AppTheme.primaryAlt],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      DateFormat('dd').format(date),
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        height: 1.0,
+                      ),
+                    ),
+                    Text(
+                      DateFormat('MMM').format(date).toUpperCase(),
+                      style: TextStyle(
+                        color: Colors.black.withOpacity(0.7),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${categoryBriefing.categoryDisplayName} Daily',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Iconsax.calendar_1,
+                          size: 14,
+                          color: AppTheme.accent,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          DateFormat('MMM dd, yyyy').format(date),
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                        if (categoryBriefing.hasAudio) ...[
+                          const SizedBox(width: 12),
+                          Icon(
+                            Iconsax.headphone,
+                            size: 14,
+                            color: AppTheme.textTertiary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            categoryBriefing.formattedDuration,
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.surfaceVariant,
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Icon(
+                  categoryBriefing.hasAudio ? Iconsax.play : Iconsax.document_text,
                   color: AppTheme.textPrimary,
                   size: 18,
                 ),

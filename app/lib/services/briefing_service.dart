@@ -1,6 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models/article.dart';
 import '../models/briefing.dart';
+import '../models/category_briefing.dart';
 
 /// Service for fetching briefings from Supabase
 class BriefingService {
@@ -48,6 +50,52 @@ class BriefingService {
 
     if (response == null) return null;
     return Briefing.fromJson(response);
+  }
+
+  /// Get category briefings for a daily briefing
+  Future<List<CategoryBriefing>> getCategoryBriefings(String briefingId) async {
+    final response = await _client
+        .from('category_briefings')
+        .select()
+        .eq('briefing_id', briefingId)
+        .order('category');
+
+    return (response as List)
+        .map((json) => CategoryBriefing.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Get category briefing by briefing ID and category
+  Future<CategoryBriefing?> getCategoryBriefing(
+      String briefingId, String category) async {
+    final response = await _client
+        .from('category_briefings')
+        .select()
+        .eq('briefing_id', briefingId)
+        .eq('category', category)
+        .maybeSingle();
+
+    if (response == null) return null;
+    return CategoryBriefing.fromJson(response);
+  }
+
+  /// Get articles for a briefing
+  Future<List<Article>> getArticles(String briefingId,
+      {String? category}) async {
+    var query = _client
+        .from('articles')
+        .select()
+        .eq('briefing_id', briefingId);
+
+    if (category != null) {
+      query = query.eq('category', category);
+    }
+
+    final response = await query.order('published_at', ascending: false);
+
+    return (response as List)
+        .map((json) => Article.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 }
 
