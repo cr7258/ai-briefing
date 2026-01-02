@@ -44,35 +44,31 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Deploy to EdgeOne Pages (Preview)
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Deploy to Vercel (Preview)
         id: deploy
         run: |
-          echo "Deploying to EdgeOne Pages..."
-          DEPLOY_OUTPUT=$(npx edgeone pages deploy ./app/build/web -n ai-briefing -t ${{ secrets.EDGEONE_API_TOKEN }} -e preview 2>&1)
-          
+          cd app/build/web
+          DEPLOY_OUTPUT=$(vercel deploy --token=${{ secrets.VERCEL_TOKEN }} 2>&1)
           echo "$DEPLOY_OUTPUT"
           
-          DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep "EDGEONE_DEPLOY_URL=" | cut -d'=' -f2-)
+          DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -oE 'https://[a-zA-Z0-9\-]+\.vercel\.app' | head -1)
           echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_OUTPUT
-          
-          PROJECT_ID=$(echo "$DEPLOY_OUTPUT" | grep "EDGEONE_PROJECT_ID=" | cut -d'=' -f2-)
-          echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_OUTPUT
-
-          DEPLOY_END_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          echo "DEPLOY_END_TIME=$DEPLOY_END_TIME" >> $GITHUB_OUTPUT
-
         env:
-          EDGEONE_API_TOKEN: ${{ secrets.EDGEONE_API_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Comment on PR
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            🚀 **EdgeOne Pages Deploy Complete**
+            🚀 **Vercel Preview Deploy Complete**
             
-            | Project | Preview Link | Project ID | Updated At |
-            |---|---|---|---|
-            | [${{ github.event.repository.name }}](https://console.tencentcloud.com/edgeone/pages/project/${{ steps.deploy.outputs.PROJECT_ID }}/deploy) | [🔗 Preview](${{ steps.deploy.outputs.DEPLOY_URL }}) | ${{ steps.deploy.outputs.PROJECT_ID }} | ${{ steps.deploy.outputs.DEPLOY_END_TIME }} |
-          comment_tag: edgeone-preview
+            | Project | Preview Link | Updated At |
+            |---|---|---|
+            | ${{ github.event.repository.name }} | [🔗 Preview](${{ steps.deploy.outputs.DEPLOY_URL }}) | ${{ github.event.pull_request.updated_at }} |
+          comment_tag: vercel-preview
           mode: recreate
 
