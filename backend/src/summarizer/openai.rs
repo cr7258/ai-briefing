@@ -3,7 +3,7 @@ use chrono::Local;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
-use crate::crawler::Article;
+use super::ClassifiedArticle;
 
 /// OpenAI chat completion client (compatible with OpenAI API format)
 pub struct OpenAISummarizer {
@@ -57,52 +57,43 @@ impl OpenAISummarizer {
         }
     }
 
-    /// Generate daily briefing summary from articles
-    pub async fn generate_summary(&self, articles: &[Article]) -> Result<String> {
+    /// Generate comprehensive briefing from classified articles (8-10 articles across all categories)
+    pub async fn generate_comprehensive_briefing(&self, articles: &[ClassifiedArticle]) -> Result<String> {
         if articles.is_empty() {
             return Ok("No AI news articles found today.".to_string());
         }
 
         let today = Local::now().format("%Y-%m-%d").to_string();
-        info!("Generating summary for {} articles", articles.len());
+        info!("Generating comprehensive briefing from {} classified articles", articles.len());
 
-        // Prepare articles content for the prompt
+        // Prepare articles with category info
         let articles_text = articles
             .iter()
-            .take(30) // Limit to avoid token overflow
+            .take(50) // Limit to avoid token overflow
             .enumerate()
             .map(|(i, a)| {
-                let content = a.get_content_for_summary();
-                // Truncate long content
-                let content = if content.len() > 1000 {
-                    format!("{}...", &content[..1000])
-                } else {
-                    content
-                };
                 format!(
-                    "{}. [{}] {}\nURL: {}\n{}",
+                    "{}. [{}][{}] {}\nURL: {}\n摘要: {}",
                     i + 1,
+                    a.category,
                     a.source_name,
                     a.title,
                     a.url,
-                    content
+                    a.summary
                 )
             })
             .collect::<Vec<_>>()
             .join("\n\n---\n\n");
 
-        let system_prompt = r###"你是一名AI新闻编辑，负责生成每日AI新闻简报。
+        let system_prompt = r###"你是一名AI新闻编辑，负责生成每日AI新闻综合简报。
 
-【严格规则】你的回复必须以 ## 今日要闻 开头，禁止输出任何以下内容：
-- 禁止：分析过程、思考过程、解释说明
-- 禁止：类似"从文章中，我可以看到..."、"主要主题包括..."等分析性语句
-- 禁止：任何不属于最终简报的内容
+【严格规则】你的回复必须以 ## 今日要闻 开头，禁止输出任何分析过程。
 
-【输出格式】（必须严格遵守）：
+【输出格式】：
 
 ## 今日要闻
 
-（5～8句话概述今日AI领域的整体趋势和重要动态）
+（5～8句话概述今日AI领域的整体趋势和重要动态，覆盖多个分类）
 
 ## 重点新闻
 
@@ -114,27 +105,89 @@ impl OpenAISummarizer {
 
 ---
 
-### 新闻标题（中文）
-
-新闻内容摘要（3～6句话）
-
-[阅读原文](原文链接)
-
-（选取5-8条最重要的新闻）
+（选取 8-10 条最重要的新闻，从各分类中精选）
 
 【要求】
+- 从各分类（llm/agent/multimodal/coding/infra/robotics/research/apps/industry/cloud_native）中精选最重要的新闻
+- 优先选择：重大发布、突破性进展、行业影响大的事件
 - 全部使用中文（简体）
-- 中文、数字、英文之间用空格隔开（如：AI 技术、2024 年、OpenAI 发布）
-- 聚焦最重要、最有影响力的新闻
-- 每条新闻包含：中文标题、摘要段落、阅读原文链接
-- 链接必须使用原文的真实URL
-- 摘要简洁有信息量"###;
+- 中文、数字、英文之间用空格隔开
+- 链接必须使用原文的真实 URL"###;
 
         let user_prompt = format!(
-            "Today is {}. Generate a daily AI news briefing from these articles:\n\n{}",
+            "Today is {}. Generate a comprehensive daily briefing selecting the 8-10 most important news from these classified articles:\n\n{}",
             today, articles_text
         );
 
+        self.call_llm(&system_prompt, &user_prompt).await
+    }
+
+    /// Generate category-specific briefing (5-10 articles for one category)
+    pub async fn generate_category_briefing(&self, category: &str, category_name: &str, articles: &[ClassifiedArticle]) -> Result<String> {
+        if articles.is_empty() {
+            return Ok(format!("今日没有 {} 相关新闻。", category_name));
+        }
+
+        info!("Generating {} briefing from {} articles", category, articles.len());
+
+        // Prepare articles
+        let articles_text = articles
+            .iter()
+            .take(15) // Limit per category
+            .enumerate()
+            .map(|(i, a)| {
+                format!(
+                    "{}. [{}] {}\nURL: {}\n摘要: {}",
+                    i + 1,
+                    a.source_name,
+                    a.title,
+                    a.url,
+                    a.summary
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n\n---\n\n");
+
+        let system_prompt = format!(
+            r###"你是一名AI新闻编辑，负责生成 {} 领域的新闻简报。
+
+【输出格式】：
+
+## {} 今日动态
+
+（2～4句话概述今日该领域的整体趋势）
+
+## 详细新闻
+
+### 新闻标题（中文）
+
+新闻内容摘要（2～4句话）
+
+[阅读原文](原文链接)
+
+---
+
+（选取 5-10 条该分类最重要的新闻）
+
+【要求】
+- 只关注 {} 领域的新闻
+- 全部使用中文（简体）
+- 中文、数字、英文之间用空格隔开
+- 链接必须使用原文的真实 URL
+- 摘要简洁有信息量"###,
+            category_name, category_name, category_name
+        );
+
+        let user_prompt = format!(
+            "Generate a {} news briefing from these articles:\n\n{}",
+            category_name, articles_text
+        );
+
+        self.call_llm(&system_prompt, &user_prompt).await
+    }
+
+    /// Internal method to call LLM API
+    async fn call_llm(&self, system_prompt: &str, user_prompt: &str) -> Result<String> {
         let request = ChatRequest {
             model: self.model.clone(),
             messages: vec![
@@ -144,12 +197,11 @@ impl OpenAISummarizer {
                 },
                 Message {
                     role: "user".to_string(),
-                    content: user_prompt,
+                    content: user_prompt.to_string(),
                 },
             ],
             temperature: 0.7,
             max_tokens: 4000,
-            // MiniMax: separate thinking content to reasoning_details field
             reasoning_split: Some(true),
         };
 

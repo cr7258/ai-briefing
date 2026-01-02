@@ -24,6 +24,7 @@ struct Args {
     run_on_start: bool,
     target_date: Option<NaiveDate>,
     hours_back: Option<i64>,
+    force: bool,
 }
 
 fn parse_args() -> Args {
@@ -66,11 +67,14 @@ fn parse_args() -> Args {
         .and_then(|i| args.get(i + 1))
         .and_then(|h| h.parse().ok());
     
+    let force = args.iter().any(|a| a == "--force");
+    
     Args {
         run_now,
         run_on_start,
         target_date,
         hours_back,
+        force,
     }
 }
 
@@ -82,10 +86,11 @@ fn print_usage() {
     println!("  --run-on-start    Run job once on startup, then continue with scheduler");
     println!("  --date DATE       Generate briefing for specific date (YYYY-MM-DD or MM-DD)");
     println!("  --hours N         Fetch articles from the last N hours (default: 24)");
+    println!("  --force           Force regenerate even if briefing already exists");
     println!();
     println!("Examples:");
     println!("  ai-briefing-backend --run-now --date 2025-01-01 --hours 48");
-    println!("  ai-briefing-backend --run-now --date 01-01");
+    println!("  ai-briefing-backend --run-now --date 01-01 --force");
 }
 
 #[tokio::main]
@@ -127,14 +132,18 @@ async fn main() -> Result<()> {
         // Run job immediately and exit
         let target_date = args.target_date;
         let hours_back = args.hours_back;
+        let force = args.force;
         
         if let Some(date) = target_date {
             info!("Running job for specific date: {} (--date flag)", date);
         } else {
             info!("Running job immediately (--run-now flag)");
         }
+        if force {
+            info!("Force mode enabled (--force flag)");
+        }
         
-        if let Err(e) = run_daily_briefing_job(&config, &repo, target_date, hours_back).await {
+        if let Err(e) = run_daily_briefing_job(&config, &repo, target_date, hours_back, force).await {
             error!("Job failed: {}", e);
             return Err(e);
         }
@@ -145,7 +154,7 @@ async fn main() -> Result<()> {
     if args.run_on_start {
         // Run job once on startup, then continue with scheduler
         info!("Running job on startup (--run-on-start flag)");
-        if let Err(e) = run_daily_briefing_job(&config, &repo, None, None).await {
+        if let Err(e) = run_daily_briefing_job(&config, &repo, None, None, false).await {
             error!("Initial job failed: {}", e);
             // Continue to scheduler even if initial job fails
         }
@@ -167,7 +176,7 @@ async fn main() -> Result<()> {
 
         Box::pin(async move {
             let repo = Repository::new(db);
-            if let Err(e) = run_daily_briefing_job(&config, &repo, None, None).await {
+            if let Err(e) = run_daily_briefing_job(&config, &repo, None, None, false).await {
                 error!("Daily briefing job failed: {}", e);
             }
         })

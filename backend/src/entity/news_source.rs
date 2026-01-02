@@ -9,7 +9,6 @@ pub struct Model {
     pub name: String,
     pub url: String,
     pub feed_type: String,
-    pub category: Option<String>,
     pub is_active: bool,
     pub last_crawled_at: Option<DateTimeWithTimeZone>,
     pub error_message: Option<String>,

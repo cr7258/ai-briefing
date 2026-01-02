@@ -113,45 +113,6 @@ impl RssCrawler {
 
         Ok(articles)
     }
-
-    /// Fetch articles from multiple sources
-    /// 
-    /// # Arguments
-    /// * `sources` - List of news sources to fetch from
-    /// * `hours_back` - Only include articles published within this many hours
-    /// * `end_time` - The end time for the time range (defaults to now)
-    pub async fn fetch_all(
-        &self,
-        sources: &[news_source::Model],
-        hours_back: i64,
-        end_time: Option<DateTime<Utc>>,
-    ) -> Vec<Article> {
-        let mut all_articles = Vec::new();
-
-        for source in sources {
-            if source.feed_type != "rss" {
-                continue;
-            }
-
-            match self.fetch(source, hours_back, end_time).await {
-                Ok(articles) => {
-                    all_articles.extend(articles);
-                }
-                Err(e) => {
-                    warn!("Failed to fetch {}: {}", source.name, e);
-                }
-            }
-        }
-
-        // Sort by published date (newest first)
-        all_articles.sort_by(|a, b| {
-            b.published_at
-                .unwrap_or(Utc::now())
-                .cmp(&a.published_at.unwrap_or(Utc::now()))
-        });
-
-        all_articles
-    }
 }
 
 impl Default for RssCrawler {
