@@ -1,0 +1,55 @@
+name: Daily Briefing Job
+
+on:
+  schedule:
+    # 北京时间早上 5:00 = UTC 21:00 (前一天)
+    - cron: '0 21 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  run-briefing:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            backend/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build backend
+        working-directory: backend
+        run: cargo build --release
+
+      - name: Run daily briefing job
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          TTS_BASE_URL: ${{ secrets.TTS_BASE_URL }}
+          TTS_APPID: ${{ secrets.TTS_APPID }}
+          TTS_ACCESS_TOKEN: ${{ secrets.TTS_ACCESS_TOKEN }}
+          TTS_VOICE_TYPE: ${{ secrets.TTS_VOICE_TYPE }}
+          TOS_ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
+          TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
+          TOS_ENDPOINT: ${{ secrets.TOS_ENDPOINT }}
+          TOS_REGION: ${{ secrets.TOS_REGION }}
+          TOS_BUCKET: ${{ secrets.TOS_BUCKET }}
+        run: cargo run --release -- --run-now --force
+
