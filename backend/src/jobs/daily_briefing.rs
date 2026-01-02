@@ -19,7 +19,6 @@ fn get_category_name(category: &str) -> &'static str {
         "Coding" => "AI 编程",
         "Infra" => "基础设施",
         "Robotics" => "机器人",
-        "Research" => "研究",
         "App" => "应用",
         "Industry" => "行业",
         "Cloud Native" => "云原生",
@@ -194,7 +193,7 @@ pub async fn run_daily_briefing_job(
         .generate_comprehensive_briefing(&classified_articles)
         .await?;
     
-    // Title: date + first article's title (from RSS)
+    // Title: date + first article's Chinese title
     let first_title = &classified_articles[0].title;
     let title = format!("{} {}", briefing_date.format("%Y-%m-%d"), first_title);
 
@@ -254,7 +253,7 @@ pub async fn run_daily_briefing_job(
                 .await
             {
                 Ok(summary) => {
-                    // Generate title using first article
+                    // Generate title using first article's Chinese title
                     let title = articles
                         .first()
                         .map(|a| format!("{} {}", briefing_date.format("%Y-%m-%d"), a.title));

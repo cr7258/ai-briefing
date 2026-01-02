@@ -19,9 +19,6 @@ struct ChatRequest {
     messages: Vec<Message>,
     temperature: f32,
     max_tokens: u32,
-    /// MiniMax specific: separate thinking content from final output
-    #[serde(skip_serializing_if = "Option::is_none")]
-    reasoning_split: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -109,11 +106,12 @@ impl OpenAISummarizer {
 
 【要求】
 - 中文、数字、英文之间必须用空格隔开（如：发布 GPT-5 模型、提升 30% 性能）
-- 新闻标题：中文标题保留原样，英文标题翻译成中文，控制在 15 字左右
-- 从各分类（llm/agent/multimodal/coding/infra/robotics/research/apps/industry/cloud_native）中精选最重要的新闻
+- 新闻标题：中文标题保留原样，英文标题翻译成中文
+- 从各分类（LLM/Agent/Multimodal/Coding/Infra/Robotics/App/Industry/Cloud Native）中精选最重要的新闻
 - 优先选择：重大发布、突破性进展、行业影响大的事件
 - 摘要使用中文（简体）
-- 链接必须使用原文的真实 URL"###;
+- 链接必须使用原文的真实 URL
+- [阅读原文] 链接单独一行显示"###;
 
         let user_prompt = format!(
             "Today is {}. Generate a comprehensive daily briefing selecting the 8-10 most important news from these classified articles:\n\n{}",
@@ -170,11 +168,12 @@ impl OpenAISummarizer {
 
 【要求】
 - 中文、数字、英文之间必须用空格隔开（如：发布 GPT-5 模型、提升 30% 性能）
-- 新闻标题：中文标题保留原样，英文标题翻译成中文，控制在 15 字左右
+- 新闻标题：中文标题保留原样，英文标题翻译成中文
 - 有多少条新闻就展示多少条（最多 10 条）
 - 只输出新闻内容，禁止添加任何解释、说明、注释或请求更多内容的文字
 - 摘要使用中文（简体）
-- 链接必须使用原文的真实 URL"###,
+- 链接必须使用原文的真实 URL
+- [阅读原文] 链接单独一行显示"###,
             category_name, category_name
         );
 
@@ -202,7 +201,6 @@ impl OpenAISummarizer {
             ],
             temperature: 0.7,
             max_tokens: 4000,
-            reasoning_split: Some(true),
         };
 
         let url = format!("{}/chat/completions", self.base_url);

@@ -12,7 +12,6 @@ pub const CATEGORIES: &[&str] = &[
     "Coding",       // AI Coding assistants
     "Infra",        // AI Infrastructure (GPU, frameworks)
     "Robotics",     // Robotics & Embodied AI
-    "Research",     // Academic research
     "App",          // AI Applications
     "Industry",     // Industry news (funding, policy)
     "Cloud Native", // Cloud Native (K8s, containers)
@@ -21,7 +20,7 @@ pub const CATEGORIES: &[&str] = &[
 /// Classified article with category and summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClassifiedArticle {
-    pub title: String,
+    pub title: String,  // Chinese title (15 chars max)
     pub url: String,
     pub summary: String,
     pub category: String,
@@ -43,8 +42,6 @@ struct ChatRequest {
     messages: Vec<Message>,
     temperature: f32,
     max_tokens: u32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    reasoning_split: Option<bool>, // MiniMax: separate thinking from content
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -68,6 +65,7 @@ struct ClassificationResult {
     index: usize,
     category: String,
     summary: String,
+    title: String,  // Chinese title
 }
 
 impl ArticleClassifier {
@@ -117,23 +115,23 @@ impl ArticleClassifier {
 - Coding: AI 编程（Copilot、Cursor、Devin、代码生成）
 - Infra: 基础设施（GPU、芯片、推理框架、MLOps、云服务）
 - Robotics: 机器人（具身智能、自动驾驶）
-- Research: 研究（学术论文、新算法、AI 安全）
 - App: 应用（产品发布、AI 搜索、企业应用）
 - Industry: 行业（融资、收购、人事、政策法规）
 - Cloud Native: 云原生（Kubernetes、容器、Serverless、DevOps、CNCF）
 
 请返回 JSON 数组，格式如下：
 [
-  {{"index": 0, "category": "LLM", "summary": "一句话中文摘要（30-60字）"}},
-  {{"index": 1, "category": "Agent", "summary": "一句话中文摘要（30-60字）"}}
+  {{"index": 0, "category": "LLM", "summary": "一句话中文摘要（30-60字）", "title": "中文标题"}},
+  {{"index": 1, "category": "Agent", "summary": "一句话中文摘要（30-60字）", "title": "中文标题"}}
 ]
 
 要求：
 1. category 只能从上述 10 个分类中选择，禁止使用其他分类
 2. 每篇文章必须分配一个分类
 3. 摘要必须用中文，简洁有信息量
-4. 中文、数字、英文之间用空格隔开
-5. 只返回 JSON 数组，不要其他内容"#
+4. title 是中文标题，中文标题保留原样，英文标题翻译成中文
+5. 中文、数字、英文之间用空格隔开
+6. 只返回 JSON 数组，不要其他内容"#
         );
 
         let user_prompt = format!("请分类以下 {} 篇文章：\n\n{}", articles.len(), articles_text);
@@ -152,7 +150,6 @@ impl ArticleClassifier {
             ],
             temperature: 0.3,
             max_tokens: 4000,
-            reasoning_split: Some(true), // MiniMax: put thinking in separate field
         };
 
         let url = format!("{}/chat/completions", self.base_url);
@@ -211,7 +208,7 @@ impl ArticleClassifier {
             };
 
             classified.push(ClassifiedArticle {
-                title: article.title.clone(),
+                title: result.title,  // Use AI-generated Chinese title
                 url: article.url.clone(),
                 summary: result.summary,
                 category,

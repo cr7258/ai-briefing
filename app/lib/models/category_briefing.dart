@@ -69,7 +69,6 @@ class CategoryBriefing {
     'Coding',
     'Infra',
     'Robotics',
-    'Research',
     'App',
     'Industry',
     'Cloud Native',
