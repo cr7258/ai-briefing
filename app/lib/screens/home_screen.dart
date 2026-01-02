@@ -615,12 +615,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       title: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.primary, AppTheme.accent],
-              ),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
                   color: AppTheme.primary.withOpacity(0.3),
@@ -629,7 +627,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ],
             ),
-            child: const Icon(Iconsax.cpu, color: Colors.black, size: 20),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/ai-briefing.jpeg',
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
           const SizedBox(width: 14),
           Column(
