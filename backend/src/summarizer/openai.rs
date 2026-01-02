@@ -1,6 +1,9 @@
 use anyhow::{Context, Result};
 use chrono::Local;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
+use tokio_retry::strategy::{jitter, ExponentialBackoff};
+use tokio_retry::Retry;
 use tracing::{debug, info};
 
 use super::ClassifiedArticle;
@@ -185,7 +188,7 @@ impl OpenAISummarizer {
         self.call_llm(&system_prompt, &user_prompt).await
     }
 
-    /// Internal method to call LLM API
+    /// Internal method to call LLM API with retry
     async fn call_llm(&self, system_prompt: &str, user_prompt: &str) -> Result<String> {
         let request = ChatRequest {
             model: self.model.clone(),
@@ -206,14 +209,21 @@ impl OpenAISummarizer {
         let url = format!("{}/chat/completions", self.base_url);
         debug!("Sending request to: {}", url);
 
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .json(&request)
-            .send()
-            .await
-            .context("Failed to send request to LLM API")?;
+        let retry_strategy = ExponentialBackoff::from_millis(1000)
+            .max_delay(Duration::from_secs(10))
+            .map(jitter)
+            .take(3);
+
+        let response = Retry::spawn(retry_strategy, || async {
+            self.client
+                .post(&url)
+                .header("Authorization", format!("Bearer {}", self.api_key))
+                .json(&request)
+                .send()
+                .await
+        })
+        .await
+        .context("Failed to send request to LLM API after retries")?;
 
         let status = response.status();
         if !status.is_success() {
@@ -233,7 +243,6 @@ impl OpenAISummarizer {
             .unwrap_or_default();
 
         info!("Generated summary with {} characters", summary.len());
-
         Ok(summary)
     }
 }

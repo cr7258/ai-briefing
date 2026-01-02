@@ -52,3 +52,6 @@ pulldown-cmark = "0.12"
 ve-tos-rust-sdk = { version = "2.9", features = ["tokio-runtime"] }
 async-trait = "0.1"
 futures-core = "0.3"
+
+# Retry with backoff
+tokio-retry = "0.3"

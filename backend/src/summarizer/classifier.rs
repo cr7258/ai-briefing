@@ -1,5 +1,8 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
+use tokio_retry::strategy::{jitter, ExponentialBackoff};
+use tokio_retry::Retry;
 use tracing::{debug, info, warn};
 
 use crate::crawler::Article;
@@ -155,33 +158,50 @@ impl ArticleClassifier {
         let url = format!("{}/chat/completions", self.base_url);
         debug!("Sending classification request to: {}", url);
 
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .json(&request)
-            .send()
-            .await
-            .context("Failed to send classification request")?;
+        let retry_strategy = ExponentialBackoff::from_millis(1000)
+            .max_delay(Duration::from_secs(10))
+            .map(jitter)
+            .take(3);
 
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
-            anyhow::bail!("Classification API error ({}): {}", status, error_text);
-        }
+        let content = Retry::spawn(retry_strategy, || async {
+            let response = self
+                .client
+                .post(&url)
+                .header("Authorization", format!("Bearer {}", self.api_key))
+                .json(&request)
+                .send()
+                .await
+                .map_err(|e| anyhow::anyhow!("Request failed: {}", e))?;
 
-        let chat_response: ChatResponse = response
-            .json()
-            .await
-            .context("Failed to parse classification response")?;
+            let status = response.status();
+            if !status.is_success() {
+                let error_text = response.text().await.unwrap_or_default();
+                return Err(anyhow::anyhow!("API error ({}): {}", status, error_text));
+            }
 
-        let content = chat_response
-            .choices
-            .first()
-            .map(|c| c.message.content.clone())
-            .unwrap_or_default();
-
-        debug!("LLM classification response:\n{}", content);
+            let text = response.text().await
+                .map_err(|e| anyhow::anyhow!("Failed to read response: {}", e))?;
+            
+            // Parse OpenAI response format
+            let chat_response: ChatResponse = serde_json::from_str(&text)
+                .map_err(|e| anyhow::anyhow!("Failed to parse API response: {}", e))?;
+            
+            let content = chat_response
+                .choices
+                .first()
+                .map(|c| c.message.content.clone())
+                .unwrap_or_default();
+            
+            debug!("LLM classification content:\n{}", content);
+            
+            // Try to parse as classification JSON to validate format
+            let _: Vec<ClassificationResult> = self.parse_classification_json(&content)
+                .map_err(|e| anyhow::anyhow!("Invalid classification JSON: {}", e))?;
+            
+            Ok(content)
+        })
+        .await
+        .context("Classification failed after retries")?;
 
         if content.is_empty() {
             anyhow::bail!("LLM returned empty response");
