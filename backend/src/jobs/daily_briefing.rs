@@ -13,17 +13,17 @@ use crate::tts::VolcengineTTS;
 /// Category display names (Chinese)
 fn get_category_name(category: &str) -> &'static str {
     match category {
-        "llm" => "大语言模型",
-        "agent" => "AI 代理",
-        "multimodal" => "多模态",
-        "coding" => "AI 编程",
-        "infra" => "基础设施",
-        "robotics" => "机器人",
-        "research" => "研究",
-        "apps" => "应用",
-        "industry" => "行业",
-        "cloud_native" => "云原生",
-        _ => "其他",
+        "LLM" => "大语言模型",
+        "Agent" => "AI Agent",
+        "Multimodal" => "多模态",
+        "Coding" => "AI 编程",
+        "Infra" => "基础设施",
+        "Robotics" => "机器人",
+        "Research" => "研究",
+        "App" => "应用",
+        "Industry" => "行业",
+        "Cloud Native" => "云原生",
+        other => panic!("Unknown category: {}", other),
     }
 }
 
@@ -193,7 +193,10 @@ pub async fn run_daily_briefing_job(
     let comprehensive_summary = summarizer
         .generate_comprehensive_briefing(&classified_articles)
         .await?;
-    let title = summarizer.generate_title(briefing_date);
+    
+    // Title: date + first article's summary
+    let first_summary = &classified_articles[0].summary;
+    let title = summarizer.generate_title(briefing_date, first_summary);
 
     // ========================================
     // Step 4: Save briefing to database

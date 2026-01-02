@@ -398,7 +398,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            category.toUpperCase(),
+                            category,
                             style: const TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.w700,
@@ -429,7 +429,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                     // Title
                     Text(
-                      '${category.toUpperCase()} Daily',
+                      '$category Daily',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
@@ -550,7 +550,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'No ${category.toUpperCase()} updates yet',
+                  'No $category updates yet',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
@@ -678,7 +678,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: categories.asMap().entries.map((entry) {
           final index = entry.key;
           final category = entry.value;
-          final label = category == 'all' ? 'All' : category.toUpperCase();
+          final label = category == 'all' ? 'All' : category;
           final isSelected = _selectedCategoryIndex == index;
           
           return Padding(

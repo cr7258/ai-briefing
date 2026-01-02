@@ -55,21 +55,20 @@ class CategoryBriefing {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
-  /// Get display name for category (uppercase)
-  String get categoryDisplayName => category.toUpperCase();
+  String get categoryDisplayName => category;
 
   /// All available categories in order
   static const List<String> allCategories = [
-    'llm',
-    'agent',
-    'multimodal',
-    'coding',
-    'infra',
-    'robotics',
-    'research',
-    'apps',
-    'industry',
-    'cloud_native',
+    'LLM',
+    'Agent',
+    'Multimodal',
+    'Coding',
+    'Infra',
+    'Robotics',
+    'Research',
+    'App',
+    'Industry',
+    'Cloud Native',
   ];
 }
 

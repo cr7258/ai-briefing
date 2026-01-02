@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS articles (
     title TEXT NOT NULL,
     url TEXT NOT NULL,
     summary TEXT,                     -- AI-generated one-line summary
-    category VARCHAR(50) NOT NULL,   -- llm/agent/multimodal/coding/infra/robotics/research/apps/industry/cloud_native
+    category VARCHAR(50) NOT NULL,   -- LLM/Agent/Multimodal/Coding/Infra/Robotics/Research/App/Industry/Cloud Native
     source_name VARCHAR(100),
     published_at TIMESTAMPTZ
 );
@@ -49,6 +49,6 @@ CREATE POLICY "Allow public read for category_briefings" ON category_briefings
     FOR SELECT USING (true);
 
 -- 7. Comments
-COMMENT ON COLUMN articles.category IS 'Article category: llm, agent, multimodal, coding, infra, robotics, research, apps, industry, cloud_native';
+COMMENT ON COLUMN articles.category IS 'Article category: LLM, Agent, Multimodal, Coding, Infra, Robotics, Research, App, Industry, Cloud Native';
 COMMENT ON TABLE category_briefings IS 'Per-category briefings with audio for premium experience';
 

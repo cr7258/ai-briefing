@@ -6,16 +6,16 @@ use crate::crawler::Article;
 
 /// Available article categories
 pub const CATEGORIES: &[&str] = &[
-    "llm",         // Large Language Models
-    "agent",       // AI Agents
-    "multimodal",  // Image/Video/Audio generation
-    "coding",      // AI Coding assistants
-    "infra",       // AI Infrastructure (GPU, frameworks)
-    "robotics",    // Robotics & Embodied AI
-    "research",    // Academic research
-    "apps",        // AI Applications
-    "industry",    // Industry news (funding, policy)
-    "cloud_native", // Cloud Native (K8s, containers)
+    "LLM",          // Large Language Models
+    "Agent",        // AI Agents
+    "Multimodal",   // Image/Video/Audio generation
+    "Coding",       // AI Coding assistants
+    "Infra",        // AI Infrastructure (GPU, frameworks)
+    "Robotics",     // Robotics & Embodied AI
+    "Research",     // Academic research
+    "App",          // AI Applications
+    "Industry",     // Industry news (funding, policy)
+    "Cloud Native", // Cloud Native (K8s, containers)
 ];
 
 /// Classified article with category and summary
@@ -111,21 +111,21 @@ impl ArticleClassifier {
             r#"你是一个 AI 新闻分类专家。请对以下文章进行分类并生成一句话摘要。
 
 可选分类：
-- llm: 大语言模型（GPT、Claude、Gemini、Llama、模型发布/更新/评测）
-- agent: AI 代理（AutoGPT、LangChain、MCP、工作流自动化、多智能体）
-- multimodal: 多模态（图像/视频/音频生成、DALL-E、Sora、Runway）
-- coding: AI 编程（Copilot、Cursor、Devin、代码生成）
-- infra: 基础设施（GPU、芯片、推理框架、MLOps、云服务）
-- robotics: 机器人（具身智能、自动驾驶）
-- research: 研究（学术论文、新算法、AI 安全）
-- apps: 应用（产品发布、AI 搜索、企业应用）
-- industry: 行业（融资、收购、人事、政策法规）
-- cloud_native: 云原生（Kubernetes、容器、Serverless、DevOps、CNCF）
+- LLM: 大语言模型（GPT、Claude、Gemini、Llama、模型发布/更新/评测）
+- Agent: AI 代理（AutoGPT、LangChain、MCP、工作流自动化、多智能体）
+- Multimodal: 多模态（图像/视频/音频生成、DALL-E、Sora、Runway）
+- Coding: AI 编程（Copilot、Cursor、Devin、代码生成）
+- Infra: 基础设施（GPU、芯片、推理框架、MLOps、云服务）
+- Robotics: 机器人（具身智能、自动驾驶）
+- Research: 研究（学术论文、新算法、AI 安全）
+- App: 应用（产品发布、AI 搜索、企业应用）
+- Industry: 行业（融资、收购、人事、政策法规）
+- Cloud Native: 云原生（Kubernetes、容器、Serverless、DevOps、CNCF）
 
 请返回 JSON 数组，格式如下：
 [
-  {{"index": 0, "category": "llm", "summary": "一句话中文摘要（30-60字）"}},
-  {{"index": 1, "category": "agent", "summary": "一句话中文摘要（30-60字）"}}
+  {{"index": 0, "category": "LLM", "summary": "一句话中文摘要（30-60字）"}},
+  {{"index": 1, "category": "Agent", "summary": "一句话中文摘要（30-60字）"}}
 ]
 
 要求：
@@ -206,8 +206,8 @@ impl ArticleClassifier {
             let category = if CATEGORIES.contains(&result.category.as_str()) {
                 result.category
             } else {
-                warn!("Unknown category '{}', defaulting to 'industry'", result.category);
-                "industry".to_string()
+                warn!("Unknown category '{}', defaulting to 'Industry'", result.category);
+                "Industry".to_string()
             };
 
             classified.push(ClassifiedArticle {

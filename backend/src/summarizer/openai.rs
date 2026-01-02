@@ -149,33 +149,31 @@ impl OpenAISummarizer {
             .join("\n\n---\n\n");
 
         let system_prompt = format!(
-            r###"你是一名AI新闻编辑，负责生成 {} 领域的新闻简报。
+            r###"你是一名 AI 新闻编辑，负责生成 {} 领域的新闻简报。
 
 【输出格式】：
 
 ## {} 今日动态
 
-（2～4句话概述今日该领域的整体趋势）
+（2～4 句话概述今日该领域的整体趋势）
 
 ## 详细新闻
 
 ### 新闻标题（中文）
 
-新闻内容摘要（2～4句话）
+新闻内容摘要（2～3 句话）
 
 [阅读原文](原文链接)
 
 ---
 
-（选取 5-10 条该分类最重要的新闻）
-
 【要求】
-- 只关注 {} 领域的新闻
+- 有多少条新闻就展示多少条（最多 10 条）
+- 只输出新闻内容，禁止添加任何解释、说明、注释或请求更多内容的文字
 - 全部使用中文（简体）
 - 中文、数字、英文之间用空格隔开
-- 链接必须使用原文的真实 URL
-- 摘要简洁有信息量"###,
-            category_name, category_name, category_name
+- 链接必须使用原文的真实 URL"###,
+            category_name, category_name
         );
 
         let user_prompt = format!(
@@ -240,9 +238,9 @@ impl OpenAISummarizer {
     }
 
     /// Generate a title for the daily briefing
-    pub fn generate_title(&self, date: chrono::NaiveDate) -> String {
-        let date_str = date.format("%Y年%m月%d日").to_string();
-        format!("{} AI 日报", date_str)
+    pub fn generate_title(&self, date: chrono::NaiveDate, first_article_summary: &str) -> String {
+        let date_str = date.format("%Y-%m-%d").to_string();
+        format!("{} {}", date_str, first_article_summary)
     }
 }
 
