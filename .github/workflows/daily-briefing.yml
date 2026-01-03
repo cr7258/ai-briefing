@@ -2,9 +2,9 @@ name: Daily Briefing Job
 
 on:
   schedule:
-    # 北京时间早上 5:00 = UTC 21:00 (前一天)
+    # Beijing time 5:00 = UTC 21:00 (previous day)
     - cron: '0 21 * * *'
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:  # Allow manual triggering
 
 env:
   CARGO_TERM_COLOR: always

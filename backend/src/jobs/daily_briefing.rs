@@ -10,6 +10,20 @@ use crate::storage::AudioStorage;
 use crate::summarizer::{ArticleClassifier, OpenAISummarizer, CATEGORIES};
 use crate::tts::VolcengineTTS;
 
+/// Extract the first headline (### Title) from markdown content
+fn extract_first_headline(content: &str) -> Option<String> {
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("### ") {
+            let title = trimmed.strip_prefix("### ").unwrap().trim();
+            if !title.is_empty() {
+                return Some(title.to_string());
+            }
+        }
+    }
+    None
+}
+
 /// Category display names (Chinese)
 fn get_category_name(category: &str) -> &'static str {
     match category {
@@ -193,9 +207,11 @@ pub async fn run_daily_briefing_job(
         .generate_comprehensive_briefing(&classified_articles)
         .await?;
     
-    // Title: date + first article's Chinese title
-    let first_title = &classified_articles[0].title;
-    let title = format!("{} {}", briefing_date.format("%Y-%m-%d"), first_title);
+    // Title: date + first headline from generated summary
+    // Extract the first "### Title" from the summary (LLM's top pick)
+    let first_headline = extract_first_headline(&comprehensive_summary)
+        .unwrap_or_else(|| classified_articles[0].title.clone());
+    let title = format!("{} {}", briefing_date.format("%Y-%m-%d"), first_headline);
 
     // ========================================
     // Step 4: Save briefing to database
@@ -253,10 +269,11 @@ pub async fn run_daily_briefing_job(
                 .await
             {
                 Ok(summary) => {
-                    // Generate title using first article's Chinese title
-                    let title = articles
-                        .first()
-                        .map(|a| format!("{} {}", briefing_date.format("%Y-%m-%d"), a.title));
+                    // Generate title using first headline from generated summary
+                    let first_headline = extract_first_headline(&summary)
+                        .or_else(|| articles.first().map(|a| a.title.clone()));
+                    let title = first_headline
+                        .map(|h| format!("{} {}", briefing_date.format("%Y-%m-%d"), h));
                     
                     // Save category briefing (without audio first)
                     repo.upsert_category_briefing(
