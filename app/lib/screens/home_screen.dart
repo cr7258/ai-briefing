@@ -7,10 +7,13 @@ import 'package:intl/intl.dart';
 
 import '../models/briefing.dart';
 import '../models/category_briefing.dart';
+import '../providers/auth_provider.dart';
 import '../providers/briefing_provider.dart';
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../responsive/responsive.dart';
 import '../widgets/briefing_cover.dart';
+import '../widgets/auth_dialog.dart';
 import 'briefing_detail_screen.dart';
 import 'category_briefing_screen.dart';
 
@@ -658,17 +661,148 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Iconsax.search_normal_1),
-          onPressed: () {},
-        ),
-        IconButton(
-          icon: const Icon(Iconsax.notification),
-          onPressed: () {},
-        ),
+        _buildUserButton(context),
         const SizedBox(width: 8),
       ],
     );
+  }
+
+  Widget _buildUserButton(BuildContext context) {
+    final userAsync = ref.watch(currentUserProvider);
+    final authService = ref.read(authServiceProvider);
+
+    return userAsync.when(
+      data: (user) {
+        if (user != null) {
+          // User is logged in - show avatar with menu
+          final avatarUrl = user.userMetadata?['avatar_url'] as String?;
+          final userName = user.userMetadata?['full_name'] ??
+              user.userMetadata?['user_name'] ??
+              'User';
+
+          return PopupMenuButton<String>(
+            offset: const Offset(0, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            color: AppTheme.surfaceElevated,
+            onSelected: (value) async {
+              if (value == 'logout') {
+                await authService.signOut();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Logged out successfully')),
+                  );
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                enabled: false,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      userName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (user.email != null)
+                      Text(
+                        user.email!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Iconsax.logout, size: 18),
+                    SizedBox(width: 8),
+                    Text('Log out'),
+                  ],
+                ),
+              ),
+            ],
+            child: Container(
+              width: 36,
+              height: 36,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppTheme.primary.withOpacity(0.5),
+                  width: 2,
+                ),
+              ),
+              child: ClipOval(
+                child: avatarUrl != null
+                    ? Image.network(
+                        avatarUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _buildDefaultAvatar(),
+                      )
+                    : _buildDefaultAvatar(),
+              ),
+            ),
+          );
+        } else {
+          // User is not logged in - show sign in button
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            child: TextButton.icon(
+              onPressed: () => _showLoginDialog(context, authService),
+              icon: const Icon(Iconsax.login, size: 18),
+              label: const Text('Sign in'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.textPrimary,
+                backgroundColor: AppTheme.surface,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(color: AppTheme.border),
+                ),
+              ),
+            ),
+          );
+        }
+      },
+      loading: () => const SizedBox(
+        width: 36,
+        height: 36,
+        child: Padding(
+          padding: EdgeInsets.all(8),
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (_, __) => IconButton(
+        icon: const Icon(Iconsax.login),
+        onPressed: () => _showLoginDialog(context, authService),
+      ),
+    );
+  }
+
+  Widget _buildDefaultAvatar() {
+    return Container(
+      color: AppTheme.primary.withOpacity(0.2),
+      child: Icon(
+        Iconsax.user,
+        size: 18,
+        color: AppTheme.primary,
+      ),
+    );
+  }
+
+  void _showLoginDialog(BuildContext context, AuthService authService) {
+    AuthDialog.show(context, authService);
   }
 
   Widget _buildCategoryFilter(BuildContext context) {

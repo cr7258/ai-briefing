@@ -75,8 +75,8 @@ class BriefingCover extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(s > 200 ? 24 : 16),
-        child: Stack(
-          children: [
+      child: Stack(
+        children: [
             // Noise texture overlay
             Positioned.fill(
               child: CustomPaint(
@@ -127,53 +127,53 @@ class BriefingCover extends StatelessWidget {
                 right: 0,
                 height: s * 0.6,
                 child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
                         Colors.black.withOpacity(0.5),
-                      ],
-                    ),
-                  ),
-                ),
+                ],
               ),
+                  ),
+            ),
+          ),
           
             // Date display
-            if (showTitle)
+          if (showTitle)
               Positioned(
                 left: s > 200 ? 24 : 12,
                 bottom: s > 200 ? 24 : 12,
-                child: Column(
+              child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      day,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    day,
                       style: TextStyle(
-                        color: Colors.white,
+                      color: Colors.white,
                         fontSize: s > 200 ? 48 : (s > 100 ? 32 : 24),
                         fontWeight: FontWeight.w800,
-                        height: 1.0,
+                      height: 1.0,
                         letterSpacing: -1,
-                      ),
                     ),
-                    Text(
-                      month,
+                  ),
+                  Text(
+                    month,
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
                         fontSize: s > 200 ? 16 : (s > 100 ? 12 : 10),
                         fontWeight: FontWeight.w700,
-                        letterSpacing: 2.0,
-                      ),
+                      letterSpacing: 2.0,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
             
             // AI Badge
-            Positioned(
+          Positioned(
               top: s > 200 ? 20 : 10,
               right: s > 200 ? 20 : 10,
               child: Container(
@@ -193,7 +193,7 @@ class BriefingCover extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.auto_awesome,
+              Icons.auto_awesome,
                       color: Colors.white.withOpacity(0.9),
                       size: s > 200 ? 14 : 10,
                     ),
@@ -205,9 +205,9 @@ class BriefingCover extends StatelessWidget {
                         fontSize: s > 200 ? 11 : 8,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
+            ),
+          ),
+        ],
                 ),
               ),
             ),
