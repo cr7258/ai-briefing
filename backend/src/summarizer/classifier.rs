@@ -74,7 +74,7 @@ struct ClassificationResult {
 impl ArticleClassifier {
     pub fn new(api_key: String, base_url: String, model: String) -> Self {
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(120))
+            .timeout(std::time::Duration::from_secs(600)) // 10 minutes timeout
             .build()
             .expect("Failed to create HTTP client");
 
@@ -158,10 +158,10 @@ impl ArticleClassifier {
         let url = format!("{}/chat/completions", self.base_url);
         debug!("Sending classification request to: {}", url);
 
-        let retry_strategy = ExponentialBackoff::from_millis(1000)
-            .max_delay(Duration::from_secs(10))
+        let retry_strategy = ExponentialBackoff::from_millis(2000)
+            .max_delay(Duration::from_secs(30))
             .map(jitter)
-            .take(3);
+            .take(5); // Retry up to 5 times
 
         let content = Retry::spawn(retry_strategy, || async {
             let response = self

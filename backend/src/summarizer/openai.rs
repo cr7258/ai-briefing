@@ -20,8 +20,6 @@ pub struct OpenAISummarizer {
 struct ChatRequest {
     model: String,
     messages: Vec<Message>,
-    temperature: f32,
-    max_tokens: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -45,7 +43,7 @@ impl OpenAISummarizer {
     /// Supports OpenAI API and compatible APIs (DeepSeek, Moonshot, etc.)
     pub fn new(api_key: String, base_url: String, model: String) -> Self {
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(120))
+            .timeout(std::time::Duration::from_secs(600)) // 10 minutes timeout
             .build()
             .expect("Failed to create HTTP client");
 
@@ -157,13 +155,13 @@ impl OpenAISummarizer {
 
 ## {} 今日动态
 
-（2～4 句话概述今日该领域的整体趋势）
+（5～8 句话概述今日该领域的整体趋势）
 
 ## 详细新闻
 
 ### 原文标题
 
-新闻内容摘要（2～3 句话）
+新闻内容摘要（3～6 句话）
 
 [阅读原文](原文链接)
 
@@ -202,45 +200,50 @@ impl OpenAISummarizer {
                     content: user_prompt.to_string(),
                 },
             ],
-            temperature: 0.7,
-            max_tokens: 4000,
         };
 
         let url = format!("{}/chat/completions", self.base_url);
         debug!("Sending request to: {}", url);
 
-        let retry_strategy = ExponentialBackoff::from_millis(1000)
-            .max_delay(Duration::from_secs(10))
+        let retry_strategy = ExponentialBackoff::from_millis(2000)
+            .max_delay(Duration::from_secs(30))
             .map(jitter)
-            .take(3);
+            .take(5); // Retry up to 5 times
 
-        let response = Retry::spawn(retry_strategy, || async {
-            self.client
+        let summary = Retry::spawn(retry_strategy, || async {
+            let response = self.client
                 .post(&url)
                 .header("Authorization", format!("Bearer {}", self.api_key))
                 .json(&request)
                 .send()
                 .await
+                .map_err(|e| anyhow::anyhow!("Request failed: {}", e))?;
+
+            let status = response.status();
+            if !status.is_success() {
+                let error_text = response.text().await.unwrap_or_default();
+                return Err(anyhow::anyhow!("API error ({}): {}", status, error_text));
+            }
+
+            let chat_response: ChatResponse = response
+                .json()
+                .await
+                .map_err(|e| anyhow::anyhow!("Failed to parse response: {}", e))?;
+
+            let content = chat_response
+                .choices
+                .first()
+                .map(|c| c.message.content.clone())
+                .unwrap_or_default();
+            
+            if content.is_empty() {
+                return Err(anyhow::anyhow!("Empty response from LLM"));
+            }
+            
+            Ok(content)
         })
         .await
-        .context("Failed to send request to LLM API after retries")?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
-            anyhow::bail!("OpenAI API error ({}): {}", status, error_text);
-        }
-
-        let chat_response: ChatResponse = response
-            .json()
-            .await
-            .context("Failed to parse OpenAI response")?;
-
-        let summary = chat_response
-            .choices
-            .first()
-            .map(|c| c.message.content.clone())
-            .unwrap_or_default();
+        .context("Failed to call LLM API after retries")?;
 
         info!("Generated summary with {} characters", summary.len());
         Ok(summary)
