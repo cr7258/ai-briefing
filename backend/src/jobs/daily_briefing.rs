@@ -65,10 +65,16 @@ pub async fn run_daily_briefing_job(
     let briefing_date = target_date.unwrap_or_else(|| Local::now().date_naive());
     let hours = hours_back.unwrap_or(config.news_hours_back);
     
-    // Calculate end_time: if target_date is specified, use end of that day (23:59:59 UTC)
+    // Calculate end_time: if target_date is specified, use end of that day in local timezone
+    // Then convert to UTC for RSS filtering
     let end_time: Option<DateTime<Utc>> = target_date.map(|date| {
         let end_of_day = NaiveTime::from_hms_opt(23, 59, 59).unwrap();
-        Utc.from_utc_datetime(&date.and_time(end_of_day))
+        let local_datetime = date.and_time(end_of_day);
+        // Convert local time (Beijing) to UTC
+        Local.from_local_datetime(&local_datetime)
+            .single()
+            .expect("Invalid local datetime")
+            .with_timezone(&Utc)
     });
     
     if let Some(end) = end_time {
@@ -167,10 +173,12 @@ pub async fn run_daily_briefing_job(
     }
     
     // Sort by published date (newest first)
+    // Use a fixed fallback time to ensure consistent ordering
+    let fallback_time = chrono::DateTime::<Utc>::MIN_UTC;
     raw_articles.sort_by(|a, b| {
         b.published_at
-            .unwrap_or(chrono::Utc::now())
-            .cmp(&a.published_at.unwrap_or(chrono::Utc::now()))
+            .unwrap_or(fallback_time)
+            .cmp(&a.published_at.unwrap_or(fallback_time))
     });
 
     info!(

@@ -57,15 +57,18 @@ impl RssCrawler {
 
         for entry in feed.entries {
             // Filter articles by time range
-            if let Some(published) = entry.published {
-                // Skip articles older than cutoff
-                if published < cutoff_time {
-                    continue;
-                }
-                // Skip articles newer than end_time (for historical queries)
-                if published > end {
-                    continue;
-                }
+            let Some(published) = entry.published else {
+                // Skip articles without published time
+                continue;
+            };
+            
+            // Skip articles older than cutoff
+            if published < cutoff_time {
+                continue;
+            }
+            // Skip articles newer than end_time (for historical queries)
+            if published > end {
+                continue;
             }
 
             let title = entry

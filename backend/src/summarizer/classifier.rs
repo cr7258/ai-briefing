@@ -277,11 +277,13 @@ impl ArticleClassifier {
         }
 
         // Sort each group by published_at (newest first)
+        // Use a fixed fallback time to ensure consistent ordering
+        let fallback_time = chrono::DateTime::<chrono::Utc>::MIN_UTC;
         for articles in groups.values_mut() {
             articles.sort_by(|a, b| {
                 b.published_at
-                    .unwrap_or(chrono::Utc::now())
-                    .cmp(&a.published_at.unwrap_or(chrono::Utc::now()))
+                    .unwrap_or(fallback_time)
+                    .cmp(&a.published_at.unwrap_or(fallback_time))
             });
         }
 

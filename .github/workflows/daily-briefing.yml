@@ -38,6 +38,7 @@ jobs:
       - name: Run daily briefing job
         working-directory: backend
         env:
+          TZ: Asia/Shanghai
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}

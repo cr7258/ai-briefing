@@ -112,7 +112,8 @@ impl OpenAISummarizer {
 - 优先选择：重大发布、突破性进展、行业影响大的事件
 - 摘要使用中文（简体）
 - 链接必须使用原文的真实 URL
-- [阅读原文] 链接单独一行显示"###;
+- [阅读原文] 链接单独一行显示
+- 禁止在末尾添加任何"注"、"说明"、"备注"或解释性文字"###;
 
         let user_prompt = format!(
             "Today is {}. Generate a comprehensive daily briefing selecting the 8-10 most important news from these classified articles:\n\n{}",

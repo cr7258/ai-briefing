@@ -8,7 +8,7 @@ mod summarizer;
 mod tts;
 
 use anyhow::Result;
-use chrono::{Datelike, NaiveDate};
+use chrono::NaiveDate;
 use sea_orm::Database;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info};
@@ -33,32 +33,12 @@ fn parse_args() -> Args {
     let run_now = args.iter().any(|a| a == "--run-now");
     let run_on_start = args.iter().any(|a| a == "--run-on-start");
     
-    // Parse --date YYYY-MM-DD or --date MM-DD (assumes current year)
+    // Parse --date YYYY-MM-DD
     let target_date = args
         .iter()
         .position(|a| a == "--date")
         .and_then(|i| args.get(i + 1))
-        .and_then(|date_str| {
-            // Try full format first: YYYY-MM-DD
-            if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
-                return Some(date);
-            }
-            // Try short format: MM-DD (use current year)
-            if let Ok(date) = NaiveDate::parse_from_str(
-                &format!("{}-{}", chrono::Local::now().year(), date_str),
-                "%Y-%m-%d",
-            ) {
-                return Some(date);
-            }
-            // Try short format: M-D
-            if let Ok(date) = NaiveDate::parse_from_str(
-                &format!("{}-{}", chrono::Local::now().year(), date_str),
-                "%Y-%-m-%-d",
-            ) {
-                return Some(date);
-            }
-            None
-        });
+        .and_then(|date_str| NaiveDate::parse_from_str(date_str, "%Y-%m-%d").ok());
     
     // Parse --hours N
     let hours_back = args
