@@ -4,15 +4,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import '../models/briefing.dart';
 import '../models/category_briefing.dart';
 import '../providers/auth_provider.dart';
 import '../providers/briefing_provider.dart';
-import '../providers/subscription_provider.dart';
 import '../services/auth_service.dart';
-import '../services/subscription_service.dart';
 import '../theme/app_theme.dart';
 import '../responsive/responsive.dart';
 import '../widgets/briefing_cover.dart';
@@ -20,7 +16,7 @@ import '../widgets/auth_dialog.dart';
 import '../widgets/subscription_gate.dart';
 import 'briefing_detail_screen.dart';
 import 'category_briefing_screen.dart';
-import 'paywall_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -30,7 +26,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _selectedNavIndex = 0;
   int _selectedCategoryIndex = 0;
   final ScrollController _scrollController = ScrollController();
 
@@ -42,27 +37,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Settings tab has its own body
-    if (_selectedNavIndex == 3) {
-      return Scaffold(
-        extendBody: true,
-        extendBodyBehindAppBar: true,
-        body: _buildSettingsView(context),
-        bottomNavigationBar: _buildFloatingNavBar(context),
-      );
-    }
-
     final briefingsAsync = ref.watch(briefingListProvider);
 
     return Scaffold(
-      extendBody: true,
       extendBodyBehindAppBar: true,
       body: briefingsAsync.when(
         data: (briefings) => _buildContent(context, briefings),
         loading: () => _buildLoadingState(),
         error: (error, stack) => _buildErrorState(error),
       ),
-      bottomNavigationBar: _buildFloatingNavBar(context),
     );
   }
 
@@ -134,68 +117,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildFloatingNavBar(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            height: 72,
-            decoration: BoxDecoration(
-              color: AppTheme.surface.withOpacity(0.85),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: AppTheme.border,
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _NavItem(
-                  icon: Iconsax.home_2,
-                  activeIcon: Iconsax.home,
-                  label: 'Home',
-                  isSelected: _selectedNavIndex == 0,
-                  onTap: () => setState(() => _selectedNavIndex = 0),
-                ),
-                _NavItem(
-                  icon: Iconsax.discover_1,
-                  activeIcon: Iconsax.discover,
-                  label: 'Discover',
-                  isSelected: _selectedNavIndex == 1,
-                  onTap: () => setState(() => _selectedNavIndex = 1),
-                ),
-                _NavItem(
-                  icon: Iconsax.archive_1,
-                  activeIcon: Iconsax.archive,
-                  label: 'Archive',
-                  isSelected: _selectedNavIndex == 2,
-                  onTap: () => setState(() => _selectedNavIndex = 2),
-                ),
-                _NavItem(
-                  icon: Iconsax.setting_2,
-                  activeIcon: Iconsax.setting,
-                  label: 'Settings',
-                  isSelected: _selectedNavIndex == 3,
-                  onTap: () => setState(() => _selectedNavIndex = 3),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildContent(BuildContext context, List<Briefing> briefings) {
     if (briefings.isEmpty) {
@@ -250,8 +171,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
         
-        // Bottom padding for nav bar
-        const SliverToBoxAdapter(child: SizedBox(height: 120)),
+        // Bottom padding
+        const SliverToBoxAdapter(child: SizedBox(height: 40)),
       ],
     );
   }
@@ -310,7 +231,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            const SliverToBoxAdapter(child: SizedBox(height: 40)),
           ],
         );
       },
@@ -702,7 +623,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             color: AppTheme.surfaceElevated,
             onSelected: (value) async {
-              if (value == 'logout') {
+              if (value == 'settings') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              } else if (value == 'logout') {
                 await authService.signOut();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -736,6 +661,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Iconsax.setting_2, size: 18),
+                    SizedBox(width: 8),
+                    Text('Settings'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'logout',
                 child: Row(
@@ -877,220 +812,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return CategoryBriefing.allCategories[_selectedCategoryIndex - 1];
   }
 
-  // ─── Settings View ────────────────────────────────────────────
-
-  Widget _buildSettingsView(BuildContext context) {
-    final theme = Theme.of(context);
-    final isLoggedIn = ref.watch(isLoggedInProvider);
-    final userAsync = ref.watch(currentUserProvider);
-    final subscriptionAsync = ref.watch(subscriptionProvider);
-
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverAppBar(
-          floating: true,
-          pinned: true,
-          elevation: 0,
-          expandedHeight: 70,
-          backgroundColor: AppTheme.background.withOpacity(0.9),
-          surfaceTintColor: Colors.transparent,
-          flexibleSpace: ClipRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(color: Colors.transparent),
-            ),
-          ),
-          title: Text(
-            'Settings',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.5,
-            ),
-          ),
-        ),
-
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-
-                // ─── Subscription Section ───
-                Text(
-                  'SUBSCRIPTION',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppTheme.textTertiary,
-                    letterSpacing: 1.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Subscription status card
-                subscriptionAsync.when(
-                  data: (subscription) {
-                    if (subscription != null && subscription.isActive) {
-                      // Active subscriber
-                      return _SettingsTile(
-                        icon: Iconsax.crown_1,
-                        iconColor: AppTheme.warning,
-                        title: 'Pro Subscription',
-                        subtitle: subscription.isCanceled
-                            ? 'Cancels ${subscription.currentPeriodEnd != null ? DateFormat('MMM dd, yyyy').format(subscription.currentPeriodEnd!) : 'soon'}'
-                            : 'Active',
-                        trailing: const _SettingsChevron(),
-                        onTap: () => _openCustomerPortal(context),
-                      );
-                    } else {
-                      // Not subscribed
-                      return _SettingsTile(
-                        icon: Iconsax.crown_1,
-                        iconColor: AppTheme.textTertiary,
-                        title: 'Upgrade to Pro',
-                        subtitle: 'Unlock unlimited access',
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppTheme.primary, AppTheme.primaryAlt],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'PRO',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        onTap: () => PaywallScreen.show(context),
-                      );
-                    }
-                  },
-                  loading: () => _SettingsTile(
-                    icon: Iconsax.crown_1,
-                    iconColor: AppTheme.textTertiary,
-                    title: 'Subscription',
-                    subtitle: 'Loading...',
-                  ),
-                  error: (_, __) => _SettingsTile(
-                    icon: Iconsax.crown_1,
-                    iconColor: AppTheme.textTertiary,
-                    title: 'Subscription',
-                    subtitle: 'Could not load status',
-                  ),
-                ),
-
-                if (subscriptionAsync.maybeWhen(
-                  data: (s) => s != null && s.isActive,
-                  orElse: () => false,
-                )) ...[
-                  const SizedBox(height: 8),
-                  _SettingsTile(
-                    icon: Iconsax.receipt_2,
-                    iconColor: AppTheme.accent,
-                    title: 'Manage Billing',
-                    subtitle: 'View invoices, update payment method',
-                    trailing: const _SettingsChevron(),
-                    onTap: () => _openCustomerPortal(context),
-                  ),
-                ],
-
-                const SizedBox(height: 32),
-
-                // ─── Account Section ───
-                Text(
-                  'ACCOUNT',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppTheme.textTertiary,
-                    letterSpacing: 1.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                if (isLoggedIn)
-                  userAsync.maybeWhen(
-                    data: (user) {
-                      if (user == null) return const SizedBox.shrink();
-                      final userName = user.userMetadata?['full_name'] ??
-                          user.userMetadata?['user_name'] ??
-                          'User';
-                      return _SettingsTile(
-                        icon: Iconsax.user,
-                        iconColor: AppTheme.primary,
-                        title: userName,
-                        subtitle: user.email ?? 'No email',
-                      );
-                    },
-                    orElse: () => const SizedBox.shrink(),
-                  ),
-
-                if (isLoggedIn) ...[
-                  const SizedBox(height: 8),
-                  _SettingsTile(
-                    icon: Iconsax.logout,
-                    iconColor: AppTheme.error,
-                    title: 'Sign Out',
-                    subtitle: 'Log out of your account',
-                    trailing: const _SettingsChevron(),
-                    onTap: () async {
-                      final authService = ref.read(authServiceProvider);
-                      await authService.signOut();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Logged out successfully')),
-                        );
-                      }
-                    },
-                  ),
-                ] else
-                  _SettingsTile(
-                    icon: Iconsax.login,
-                    iconColor: AppTheme.primary,
-                    title: 'Sign In',
-                    subtitle: 'Log in to access all features',
-                    trailing: const _SettingsChevron(),
-                    onTap: () {
-                      final authService = ref.read(authServiceProvider);
-                      AuthDialog.show(context, authService);
-                    },
-                  ),
-
-                const SizedBox(height: 120),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _openCustomerPortal(BuildContext context) async {
-    try {
-      final service = ref.read(subscriptionServiceProvider);
-      final portalUrl = await service.getPortalUrl();
-      final uri = Uri.parse(portalUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not open billing portal: $e'),
-            backgroundColor: AppTheme.error,
-          ),
-        );
-      }
-    }
-  }
-
   Widget _buildHeroSection(BuildContext context, Briefing featured) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
@@ -1177,56 +898,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
 
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primary.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSelected ? activeIcon : icon,
-              color: isSelected ? AppTheme.primary : AppTheme.textTertiary,
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? AppTheme.primary : AppTheme.textTertiary,
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _HeroCard extends StatelessWidget {
   final Briefing briefing;
@@ -1696,92 +1368,6 @@ class _CategoryBriefingTile extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Settings list tile
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-  final Widget? trailing;
-  final VoidCallback? onTap;
-
-  const _SettingsTile({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    this.trailing,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: iconColor, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: AppTheme.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textTertiary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (trailing != null) trailing!,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Chevron arrow for settings tiles
-class _SettingsChevron extends StatelessWidget {
-  const _SettingsChevron();
-
-  @override
-  Widget build(BuildContext context) {
-    return Icon(
-      Iconsax.arrow_right_3,
-      color: AppTheme.textTertiary,
-      size: 18,
     );
   }
 }

@@ -4,6 +4,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  /// Get the current web origin for OAuth redirect
+  /// In debug mode (localhost), returns the localhost URL
+  /// In release mode, returns null to use Supabase's default Site URL
+  String? get _webRedirectUrl {
+    if (!kIsWeb) return 'io.supabase.aibriefing://login-callback';
+    if (kDebugMode) return Uri.base.origin;
+    return null; // Uses Supabase Site URL in production
+  }
+
   /// Get current user
   User? get currentUser => _supabase.auth.currentUser;
 
@@ -28,7 +37,7 @@ class AuthService {
   Future<void> signInWithGitHub() async {
     await _supabase.auth.signInWithOAuth(
       OAuthProvider.github,
-      redirectTo: kIsWeb ? null : 'io.supabase.aibriefing://login-callback',
+      redirectTo: _webRedirectUrl,
       authScreenLaunchMode:
           kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
     );
