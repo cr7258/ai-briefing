@@ -5,11 +5,9 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../providers/auth_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../services/subscription_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/auth_dialog.dart';
 import 'paywall_screen.dart';
 
 /// Settings screen accessed from user avatar dropdown
@@ -19,8 +17,6 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final isLoggedIn = ref.watch(isLoggedInProvider);
-    final userAsync = ref.watch(currentUserProvider);
     final subscriptionAsync = ref.watch(subscriptionProvider);
 
     return Scaffold(
@@ -142,69 +138,6 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ],
 
-                  const SizedBox(height: 32),
-
-                  // ─── Account Section ───
-                  Text(
-                    'ACCOUNT',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppTheme.textTertiary,
-                      letterSpacing: 1.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  if (isLoggedIn)
-                    userAsync.maybeWhen(
-                      data: (user) {
-                        if (user == null) return const SizedBox.shrink();
-                        final userName = user.userMetadata?['full_name'] ??
-                            user.userMetadata?['user_name'] ??
-                            'User';
-                        return _SettingsTile(
-                          icon: Iconsax.user,
-                          iconColor: AppTheme.primary,
-                          title: userName,
-                          subtitle: user.email ?? 'No email',
-                        );
-                      },
-                      orElse: () => const SizedBox.shrink(),
-                    ),
-
-                  if (isLoggedIn) ...[
-                    const SizedBox(height: 8),
-                    _SettingsTile(
-                      icon: Iconsax.logout,
-                      iconColor: AppTheme.error,
-                      title: 'Sign Out',
-                      subtitle: 'Log out of your account',
-                      trailing: const _SettingsChevron(),
-                      onTap: () async {
-                        final authService = ref.read(authServiceProvider);
-                        await authService.signOut();
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Logged out successfully')),
-                          );
-                        }
-                      },
-                    ),
-                  ] else
-                    _SettingsTile(
-                      icon: Iconsax.login,
-                      iconColor: AppTheme.primary,
-                      title: 'Sign In',
-                      subtitle: 'Log in to access all features',
-                      trailing: const _SettingsChevron(),
-                      onTap: () {
-                        final authService = ref.read(authServiceProvider);
-                        AuthDialog.show(context, authService);
-                      },
-                    ),
-
                   const SizedBox(height: 40),
                 ],
               ),
@@ -258,9 +191,11 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
+    return MouseRegion(
+      cursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppTheme.surface,
@@ -303,6 +238,7 @@ class _SettingsTile extends StatelessWidget {
             if (trailing != null) trailing!,
           ],
         ),
+      ),
       ),
     );
   }

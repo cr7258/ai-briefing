@@ -86,14 +86,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final theme = Theme.of(context);
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.85,
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
             color: AppTheme.surfaceElevated,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             border: Border.all(
               color: AppTheme.border.withOpacity(0.5),
               width: 1,
@@ -101,52 +101,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           ),
           child: SingleChildScrollView(
             controller: scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: Column(
-              children: [
-                // Drag handle
-                const SizedBox(height: 12),
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.textTertiary.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // Pro badge
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppTheme.accentPurple.withOpacity(0.3),
-                        AppTheme.accent.withOpacity(0.3),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppTheme.accentPurple.withOpacity(0.5),
-                    ),
-                  ),
-                  child: Text(
-                    'PRO',
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: AppTheme.accent,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                ).animate().scale(
-                      duration: 400.ms,
-                      curve: Curves.easeOutBack,
-                    ),
-
-                const SizedBox(height: 24),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: Column(
+                    children: [
+                const SizedBox(height: 28),
 
                 // Title
                 Text(
@@ -192,7 +154,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       foregroundColor: Colors.black,
                       disabledBackgroundColor: AppTheme.primary.withOpacity(0.5),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     child: _isLoading
@@ -232,6 +194,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 const SizedBox(height: 40),
               ],
             ),
+                ),
+              ),
+            ),
           ),
         );
       },
@@ -243,7 +208,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       (Iconsax.document_text, 'Daily AI Briefings', 'Comprehensive news summaries every day'),
       (Iconsax.music, 'Audio Summaries', 'Listen to briefings on the go'),
       (Iconsax.category, 'Category Deep Dives', 'LLM, Agent, Coding, Infra and more'),
-      (Iconsax.archive_book, 'Full Archive Access', 'Browse all past briefings'),
     ];
 
     return features.asMap().entries.map((entry) {
@@ -316,7 +280,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             AppTheme.surfaceVariant,
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppTheme.primary.withOpacity(0.3),
           width: 1.5,
@@ -344,20 +308,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 ),
               ),
               Text(
-                '9',
+                '3',
                 style: theme.textTheme.displayLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   height: 1,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  '.99',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
                 ),
               ),
             ],
