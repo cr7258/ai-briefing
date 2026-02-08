@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../services/auth_service.dart';
@@ -308,7 +309,7 @@ class _OAuthButton extends StatelessWidget {
                   const SizedBox(width: 12),
                   Text(
                     'Continue with ${provider.name}',
-                    style: TextStyle(
+                    style: GoogleFonts.spaceGrotesk(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: provider.foregroundColor,
