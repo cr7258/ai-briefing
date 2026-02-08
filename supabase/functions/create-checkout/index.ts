@@ -48,7 +48,7 @@ serve(async (req: Request) => {
     }
 
     const defaultSuccessUrl = body.success_url as string ||
-      "io.supabase.aibriefing://subscription-success";
+      "https://ai-briefing.vercel.app/?subscription=success";
 
     const checkoutPayload: Record<string, unknown> = {
       product_id: productId,
