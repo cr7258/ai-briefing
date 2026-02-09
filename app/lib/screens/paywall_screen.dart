@@ -271,7 +271,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Widget _buildPriceCard(ThemeData theme) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -287,42 +287,35 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           width: 1.5,
         ),
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'Monthly',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: AppTheme.textTertiary,
-              letterSpacing: 1,
+            '\$',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Text(
+            '3',
+            style: theme.textTheme.headlineLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              height: 1,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '\$',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                '3',
-                style: theme.textTheme.displayLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  height: 1,
+                'per month',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppTheme.textTertiary,
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'per month',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppTheme.textTertiary,
-            ),
           ),
         ],
       ),
