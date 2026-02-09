@@ -77,7 +77,7 @@ class SettingsScreen extends ConsumerWidget {
                           iconColor: AppTheme.warning,
                           title: 'Pro Subscription',
                           subtitle: subscription.isCanceled
-                              ? 'Cancels ${subscription.currentPeriodEnd != null ? DateFormat('MMM dd, yyyy').format(subscription.currentPeriodEnd!) : 'soon'}'
+                              ? 'Expires ${subscription.currentPeriodEnd != null ? DateFormat('MMM dd, yyyy').format(subscription.currentPeriodEnd!) : 'soon'}'
                               : 'Active',
                           trailing: const _SettingsChevron(),
                           onTap: () => _openCustomerPortal(context, ref),
@@ -122,21 +122,6 @@ class SettingsScreen extends ConsumerWidget {
                       subtitle: 'Could not load status',
                     ),
                   ),
-
-                  if (subscriptionAsync.maybeWhen(
-                    data: (s) => s != null && s.isActive,
-                    orElse: () => false,
-                  )) ...[
-                    const SizedBox(height: 8),
-                    _SettingsTile(
-                      icon: Iconsax.receipt_2,
-                      iconColor: AppTheme.accent,
-                      title: 'Manage Billing',
-                      subtitle: 'View invoices, update payment method',
-                      trailing: const _SettingsChevron(),
-                      onTap: () => _openCustomerPortal(context, ref),
-                    ),
-                  ],
 
                   const SizedBox(height: 40),
                 ],
