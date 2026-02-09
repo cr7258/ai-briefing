@@ -80,7 +80,8 @@ ai-briefing/
 │       ├── providers/
 │       │   ├── auth_provider.dart
 │       │   ├── briefing_provider.dart
-│       │   └── subscription_provider.dart
+│       │   ├── subscription_provider.dart
+│       │   └── trial_provider.dart
 │       ├── responsive/
 │       │   └── responsive.dart
 │       ├── screens/
@@ -92,7 +93,8 @@ ai-briefing/
 │       ├── services/
 │       │   ├── auth_service.dart
 │       │   ├── briefing_service.dart
-│       │   └── subscription_service.dart
+│       │   ├── subscription_service.dart
+│       │   └── trial_service.dart
 │       ├── theme/
 │       │   └── app_theme.dart
 │       └── widgets/
@@ -119,7 +121,8 @@ ai-briefing/
 │       ├── 003_add_articles_table.sql
 │       ├── 004_add_more_sources.sql
 │       ├── 005_add_category_briefing_title.sql
-│       └── 006_add_user_subscriptions.sql
+│       ├── 006_add_user_subscriptions.sql
+│       └── 007_add_user_trial_access.sql
 │
 └── .github/workflows/
     ├── daily-briefing.yml            # Rust cron job (daily 21:00 UTC)
@@ -140,6 +143,7 @@ ai-briefing/
 | `articles` | Individual classified news articles | Write | Read |
 | `category_briefings` | Per-category summaries (LLM, Agent, Coding, etc.) | Write | Read |
 | `user_subscriptions` | Creem subscription status | - | Read (Edge Functions write) |
+| `user_trial_access` | Free trial content access tracking (max 3) | - | Read/Write |
 
 ### Categories (article classification)
 
@@ -149,6 +153,7 @@ The AI classifier assigns articles to these categories: `llm`, `agent`, `coding`
 
 - `daily_briefings`, `news_sources`, `articles`, `category_briefings`: Public read (no auth required)
 - `user_subscriptions`: Users can only SELECT their own row; Edge Functions use service_role for writes
+- `user_trial_access`: Users can SELECT and INSERT their own rows (max 3 unique content items)
 
 ---
 
@@ -201,14 +206,17 @@ CREEM_TEST_MODE        - "true" for sandbox, "false"/"" for production
 - **State management**: Riverpod (providers in `lib/providers/`)
 - **Auth**: GitHub OAuth via Supabase Auth, implicit flow (`AuthFlowType.implicit` for session persistence on web refresh)
 - **Data access**: Direct Supabase queries via `BriefingService` (no backend API)
-- **Subscription gating**: `SubscriptionGate.navigateIfSubscribed()` checks subscription before navigation
+- **Subscription gating**: `SubscriptionGate.navigateIfSubscribed()` checks subscription + trial before navigation
+- **Free trial**: Non-subscribed logged-in users get 3 free content accesses (tracked in `user_trial_access` table via `TrialService`)
 - **Paywall**: `PaywallScreen.show()` displays centered dialog with pricing and checkout flow
 
 ### Content Gating
 
 - Latest/featured briefing: **always free** (hero card on home screen)
-- Past briefings: **require subscription** (gated via `SubscriptionGate`)
-- Category briefings: **require subscription**
+- Past briefings: **3 free trials**, then **require subscription** (gated via `SubscriptionGate`)
+- Category briefings: **3 free trials** (shared quota with daily), then **require subscription**
+- The 3 free trial quota is shared across daily and category briefings, tracked per unique content
+- Revisiting already-accessed trial content does NOT consume additional quota
 - Settings: accessible from avatar dropdown menu (logged-in users)
 
 ### Auth Flow

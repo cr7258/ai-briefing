@@ -149,9 +149,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: _buildHeroSection(context, featured),
         ),
 
-        // Recent Section Header
+        // Recent Section Header with trial indicator
         SliverToBoxAdapter(
-          child: _buildSectionHeader(context, 'Past Updates'),
+          child: _buildSectionHeaderWithTrial(context),
         ),
 
         // Recent List
@@ -207,9 +207,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: _buildCategoryHeroSection(context, featured, category),
             ),
 
-            // Past Updates Header
+            // Past Updates Header with trial indicator
             SliverToBoxAdapter(
-              child: _buildSectionHeader(context, 'Past Updates'),
+              child: _buildSectionHeaderWithTrial(context),
             ),
 
             // Category Briefing List
@@ -896,6 +896,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+
+  /// Section header for past updates
+  Widget _buildSectionHeaderWithTrial(BuildContext context) {
+    return _buildSectionHeader(context, 'Past Updates');
+  }
 }
 
 
@@ -1151,6 +1156,8 @@ class _BriefingListTile extends ConsumerWidget {
           context,
           ref,
           BriefingDetailScreen(briefing: briefing),
+          contentType: 'daily_briefing',
+          contentId: briefing.id,
         ),
         child: Container(
           padding: const EdgeInsets.all(14),
@@ -1259,6 +1266,8 @@ class _CategoryBriefingTile extends ConsumerWidget {
             categoryBriefing: categoryBriefing,
             date: date,
           ),
+          contentType: 'category_briefing',
+          contentId: categoryBriefing.id,
         ),
         child: Container(
           padding: const EdgeInsets.all(14),

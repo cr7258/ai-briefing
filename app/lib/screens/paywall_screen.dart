@@ -6,8 +6,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/subscription_provider.dart';
+import '../providers/trial_provider.dart';
 import '../services/auth_service.dart';
 import '../services/subscription_service.dart';
+import '../services/trial_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_dialog.dart';
 
@@ -117,15 +119,21 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
                 const SizedBox(height: 12),
 
-                // Subtitle
-                Text(
-                  'Get unlimited access to daily AI briefings, audio summaries, and category deep dives.',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: AppTheme.textSecondary,
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+                // Subtitle - show trial exhaustion or default message
+                Builder(builder: (context) {
+                  final remaining = ref.watch(remainingTrialsProvider);
+                  final subtitle = remaining <= 0
+                      ? 'You\'ve used all ${TrialService.maxFreeTrials} free previews. Subscribe for unlimited access to daily AI briefings, audio summaries, and category deep dives.'
+                      : 'Get unlimited access to daily AI briefings, audio summaries, and category deep dives.';
+                  return Text(
+                    subtitle,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: AppTheme.textSecondary,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  );
+                }).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
 
                 const SizedBox(height: 36),
 
