@@ -15,12 +15,10 @@ import '../widgets/auth_dialog.dart';
 class PaywallScreen extends ConsumerStatefulWidget {
   const PaywallScreen({super.key});
 
-  /// Show as a modal bottom sheet
+  /// Show as a centered dialog
   static Future<bool?> show(BuildContext context) {
-    return showModalBottomSheet<bool>(
+    return showDialog<bool>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.7),
       builder: (context) => const PaywallScreen(),
     );
@@ -85,29 +83,27 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      minChildSize: 0.4,
-      maxChildSize: 0.85,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceElevated,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            border: Border.all(
-              color: AppTheme.border.withOpacity(0.5),
-              width: 1,
-            ),
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+        constraints: BoxConstraints(
+          maxWidth: 560,
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceElevated,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppTheme.border.withOpacity(0.5),
+            width: 1,
           ),
-          child: SingleChildScrollView(
-            controller: scrollController,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
-                  child: Column(
-                    children: [
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Column(
+            children: [
                 const SizedBox(height: 28),
 
                 // Title
@@ -194,12 +190,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 const SizedBox(height: 40),
               ],
             ),
-                ),
-              ),
-            ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
