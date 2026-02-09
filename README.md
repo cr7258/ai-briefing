@@ -1,134 +1,176 @@
 # AI Briefing
 
-Daily AI news briefing app with voice broadcast support.
+Daily AI news briefing app with voice broadcast support. Automatically crawls AI news from RSS feeds, generates summaries using OpenAI, and produces audio briefings.
+
+**Live**: [ai-briefing.vercel.app](https://ai-briefing.vercel.app/)
 
 ## Architecture
 
+```mermaid
+flowchart TB
+    subgraph github_actions [GitHub Actions - Daily Cron]
+        Crawler["RSS Crawler\n(feed-rs)"]
+        Summarizer["AI Summarizer\n(OpenAI)"]
+        Classifier["Article Classifier\n(OpenAI)"]
+        TTS["Voice Synthesis\n(Volcengine TTS)"]
+    end
+
+    subgraph supabase [Supabase]
+        DB["PostgreSQL\n(daily_briefings, articles,\ncategory_briefings, news_sources,\nuser_subscriptions)"]
+        Auth["Auth\n(GitHub OAuth)"]
+        EdgeFn["Edge Functions\n(create-checkout, creem-webhook,\ncustomer-portal)"]
+    end
+
+    subgraph external [External Services]
+        RSS["RSS Feeds\n(20+ sources)"]
+        TOS["Volcengine TOS\n(Audio Storage)"]
+        Creem["Creem\n(Payments)"]
+    end
+
+    subgraph client [Flutter Web App - Vercel]
+        App["ai-briefing.vercel.app"]
+    end
+
+    RSS -->|"fetch articles"| Crawler
+    Crawler --> Classifier
+    Classifier --> Summarizer
+    Summarizer --> TTS
+    TTS -->|"upload audio"| TOS
+    Summarizer -->|"write summaries"| DB
+    Classifier -->|"write articles"| DB
+
+    App -->|"read data"| DB
+    App -->|"login"| Auth
+    App -->|"subscribe"| EdgeFn
+    EdgeFn -->|"checkout/webhook"| Creem
+    EdgeFn -->|"update subscription"| DB
+    App -->|"stream audio"| TOS
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Flutter Client                          │
-│         (iOS, Android, Web, macOS, Windows)                 │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ REST API (PostgREST)
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Supabase Cloud                            │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │ PostgreSQL  │  │   Storage   │  │    Auth     │         │
-│  │  Database   │  │   (Audio)   │  │  (Future)   │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-└──────────────────────────▲──────────────────────────────────┘
-                           │
-┌──────────────────────────┴──────────────────────────────────┐
-│                    Rust Backend                             │
-│  ┌─────────┐  ┌───────────┐  ┌─────────┐  ┌─────────────┐  │
-│  │ Crawler │  │ Summarizer│  │   TTS   │  │  Scheduler  │  │
-│  │  (RSS)  │  │ (OpenAI)  │  │(MiniMax)│  │   (Cron)    │  │
-│  └─────────┘  └───────────┘  └─────────┘  └─────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+
+## Features
+
+- Daily AI news aggregation from 20+ RSS sources
+- AI-powered summary generation with category classification (LLM, Agent, Coding, Infra, etc.)
+- Voice broadcast with high-quality TTS (Volcengine)
+
+## Tech Stack
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Frontend | Flutter (Dart) | Web app on Vercel |
+| Backend | Rust | Daily cron job (GitHub Actions) |
+| Database | Supabase (PostgreSQL) | Data storage, Auth, Edge Functions |
+| AI Summary | OpenAI API | News summarization and classification |
+| TTS | Volcengine TTS | Audio generation |
+| Storage | Volcengine TOS | Audio file hosting |
+| Payments | Creem | Subscription billing |
+| CI/CD | GitHub Actions + Vercel | Automated deployment |
+
+## News Sources
+
+| Source | URL |
+|--------|-----|
+| TechCrunch AI | `https://techcrunch.com/category/artificial-intelligence/feed/` |
+| The Verge AI | `https://www.theverge.com/ai-artificial-intelligence/rss/index.xml` |
+| VentureBeat AI | `https://venturebeat.com/category/ai/feed/` |
+| AI News | `https://www.artificialintelligence-news.com/feed/` |
+| Hacker News AI | `https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT` |
+| OpenAI Blog | `https://openai.com/blog/rss.xml` |
+| Hugging Face Blog | `https://huggingface.co/blog/feed.xml` |
+| vLLM Blog | `https://blog.vllm.ai/feed.xml` |
+| Google AI Blog | `https://blog.google/technology/ai/rss/` |
+| LMSYS Org | `https://lmsys.org/rss.xml` |
+| LangChain Blog | `https://blog.langchain.dev/rss/` |
+| NVIDIA Blog | `https://blogs.nvidia.com/feed/` |
+| CNCF Blog | `https://www.cncf.io/blog/feed/` |
+| Kubernetes Blog | `https://kubernetes.io/feed.xml` |
+| Ars Technica | `https://feeds.arstechnica.com/arstechnica/technology-lab` |
+| MIT Tech Review AI | `https://www.technologyreview.com/topic/artificial-intelligence/feed` |
+| 机器之心 | `https://www.jiqizhixin.com/rss` |
+| 量子位 | `https://www.qbitai.com/feed` |
+
+News sources are stored in the `news_sources` table and can be managed via Supabase.
+
+## Local Development
+
+### Prerequisites
+
+- Flutter SDK (3.x)
+- Rust toolchain (for backend)
+- Supabase CLI (for Edge Functions)
+- A Supabase project with migrations applied
+
+### Flutter Web App
+
+```bash
+cd app
+cp .env.example .env
+# Edit .env with your SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY
+
+flutter pub get
+flutter run -d chrome --web-port=3000
+```
+
+> Add `http://localhost:3000` to Supabase Dashboard -> Auth -> URL Configuration -> Redirect URLs for OAuth to work locally.
+
+### Rust Backend
+
+```bash
+cd backend
+cp env.example .env
+# Edit .env with your credentials (database, OpenAI, Volcengine TTS/TOS)
+
+# Run once immediately
+cargo run --release -- --run-now
+
+# Run with scheduler
+cargo run --release
+```
+
+### Supabase Edge Functions
+
+```bash
+# Serve locally
+supabase functions serve --env-file supabase/.env.local
+
+# Deploy
+supabase functions deploy create-checkout --no-verify-jwt
+supabase functions deploy creem-webhook --no-verify-jwt
+supabase functions deploy customer-portal --no-verify-jwt
+```
+
+### Database Migrations
+
+Run SQL files in `supabase/migrations/` in order via Supabase SQL Editor, or use:
+
+```bash
+supabase db push
 ```
 
 ## Project Structure
 
 ```
 ai-briefing/
-├── backend/           # Rust backend
-│   ├── src/
-│   │   ├── crawler/   # RSS feed crawler
-│   │   ├── summarizer/# OpenAI summary generation
-│   │   ├── tts/       # MiniMax text-to-speech
-│   │   ├── storage/   # Supabase storage
-│   │   ├── db/        # Database models & repository
-│   │   └── jobs/      # Scheduled jobs
-│   └── Cargo.toml
-├── app/               # Flutter client
-│   ├── lib/
-│   │   ├── config/    # App configuration
-│   │   ├── models/    # Data models
-│   │   ├── providers/ # Riverpod providers
-│   │   ├── screens/   # UI screens
-│   │   ├── services/  # API services
-│   │   └── widgets/   # Reusable widgets
-│   └── pubspec.yaml
-├── supabase/          # Database migrations
-│   └── migrations/
-└── design.md          # Detailed design document
+├── backend/               # Rust backend (cron job)
+│   └── src/
+│       ├── crawler/       # RSS feed crawler
+│       ├── summarizer/    # OpenAI summary + classifier
+│       ├── tts/           # Volcengine TTS
+│       ├── storage/       # Volcengine TOS upload
+│       ├── db/            # Database repository
+│       ├── entity/        # SeaORM entities
+│       └── jobs/          # Daily job orchestration
+├── app/                   # Flutter web app
+│   └── lib/
+│       ├── models/        # Data models
+│       ├── providers/     # Riverpod providers
+│       ├── screens/       # UI screens
+│       ├── services/      # Supabase services
+│       ├── widgets/       # Reusable widgets
+│       └── theme/         # App theme
+├── supabase/
+│   ├── functions/         # Edge Functions (Creem payments)
+│   └── migrations/        # SQL migrations
+└── .github/workflows/     # CI/CD
 ```
-
-## Quick Start
-
-### 1. Setup Supabase
-
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Run the SQL migrations in `supabase/migrations/`
-3. Create a storage bucket named `briefing-audio` with public access
-
-### 2. Configure Backend
-
-```bash
-cd backend
-cp env.example .env
-# Edit .env with your credentials
-```
-
-Required environment variables:
-- `DATABASE_URL` - Supabase PostgreSQL connection string
-- `SUPABASE_URL` - Supabase project URL
-- `SUPABASE_SERVICE_ROLE_KEY` - Service role key (for storage)
-- `OPENAI_API_KEY` - OpenAI API key
-- `MINIMAX_GROUP_ID` - MiniMax group ID
-- `MINIMAX_API_KEY` - MiniMax API key
-
-### 3. Run Backend
-
-```bash
-cd backend
-
-# Run scheduler only (wait for cron time)
-cargo run --release
-
-# Run once immediately, then exit
-cargo run --release -- --run-now
-
-# Run once on start, then continue with scheduler
-cargo run --release -- --run-on-start
-```
-
-### 4. Configure Flutter App
-
-Edit `app/lib/config/supabase_config.dart` with your Supabase credentials.
-
-### 5. Run Flutter App
-
-```bash
-cd app
-flutter pub get
-flutter run
-```
-
-## Features
-
-- 📰 Daily AI news aggregation from multiple sources
-- 🤖 AI-powered summary generation (OpenAI)
-- 🔊 Voice broadcast with high-quality TTS (MiniMax)
-- 📱 Cross-platform support (iOS, Android, Web, macOS, Windows)
-- 🌙 Dark mode support
-- 📚 Markdown rendering with clickable links
-
-## News Sources
-
-| Source | Type |
-|--------|------|
-| TechCrunch AI | RSS |
-| The Verge AI | RSS |
-| VentureBeat AI | RSS |
-| AI News | RSS |
-| Hacker News AI | RSS |
-| OpenAI Blog | RSS |
-| Hugging Face Blog | RSS |
-| vLLM Blog | RSS |
-
-## License
-
-MIT
 
