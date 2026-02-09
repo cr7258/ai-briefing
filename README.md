@@ -9,22 +9,22 @@ Daily AI news briefing app with voice broadcast support. Automatically crawls AI
 ```mermaid
 flowchart TB
     subgraph github_actions [GitHub Actions - Daily Cron]
-        Crawler["RSS Crawler\n(feed-rs)"]
-        Summarizer["AI Summarizer\n(OpenAI)"]
-        Classifier["Article Classifier\n(OpenAI)"]
-        TTS["Voice Synthesis\n(Volcengine TTS)"]
+        Crawler["RSS Crawler<br/>(feed-rs)"]
+        Summarizer["AI Summarizer<br/>(OpenAI)"]
+        Classifier["Article Classifier<br/>(OpenAI)"]
+        TTS["Voice Synthesis<br/>(Volcengine TTS)"]
     end
 
     subgraph supabase [Supabase]
-        DB["PostgreSQL\n(daily_briefings, articles,\ncategory_briefings, news_sources,\nuser_subscriptions)"]
-        Auth["Auth\n(GitHub OAuth)"]
-        EdgeFn["Edge Functions\n(create-checkout, creem-webhook,\ncustomer-portal)"]
+        DB["PostgreSQL<br/>(daily_briefings, articles,<br/>category_briefings, news_sources,<br/>user_subscriptions)"]
+        Auth["Auth<br/>(GitHub OAuth)"]
+        EdgeFn["Edge Functions<br/>(create-checkout, creem-webhook,<br/>customer-portal)"]
     end
 
     subgraph external [External Services]
-        RSS["RSS Feeds\n(20+ sources)"]
-        TOS["Volcengine TOS\n(Audio Storage)"]
-        Creem["Creem\n(Payments)"]
+        RSS["RSS Feeds<br/>(20+ sources)"]
+        TOS["Volcengine TOS<br/>(Audio Storage)"]
+        Creem["Creem<br/>(Payments)"]
     end
 
     subgraph client [Flutter Web App - Vercel]
