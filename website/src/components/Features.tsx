@@ -17,7 +17,7 @@ const features = [
     ),
     title: "Daily AI Briefings",
     description:
-      "Comprehensive news summaries generated every day at 05:00 Beijing time. Never miss an important AI development again.",
+      "Comprehensive news summaries generated every day. Never miss an important AI development again.",
   },
   {
     icon: (
@@ -79,7 +79,7 @@ export default function Features() {
             Everything you need to stay informed
           </h2>
           <p className="mt-4 font-body text-lg text-text-secondary">
-            AI Briefing crawls dozens of RSS feeds, classifies articles with AI,
+            AI Briefing curates the latest AI news, classifies articles with AI,
             and delivers concise summaries right to you.
           </p>
         </div>
