@@ -43,7 +43,7 @@ export default function Footer() {
                 Pricing
               </a>
               <a
-                href="https://ai-briefing.vercel.app"
+                href="https://app.ai-briefing.cc"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="cursor-pointer font-body text-sm text-text-tertiary transition-colors duration-200 hover:text-text-primary"

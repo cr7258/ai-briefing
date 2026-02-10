@@ -2,7 +2,7 @@
 
 Daily AI news briefing app with voice broadcast support. Automatically crawls AI news from RSS feeds, generates summaries using OpenAI, and produces audio briefings.
 
-**Live**: [ai-briefing.vercel.app](https://ai-briefing.vercel.app/)
+**Live**: [app.ai-briefing.cc](https://app.ai-briefing.cc/)
 
 ## Architecture
 
@@ -28,7 +28,7 @@ flowchart TB
     end
 
     subgraph client [Flutter Web App - Vercel]
-        App["ai-briefing.vercel.app"]
+        App["app.ai-briefing.cc"]
     end
 
     RSS -->|"fetch articles"| Crawler

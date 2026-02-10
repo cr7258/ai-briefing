@@ -1,6 +1,6 @@
 # AI Briefing - Website
 
-Marketing landing page for [AI Briefing](https://ai-briefing.vercel.app), built with Next.js 16 + Tailwind CSS v4.
+Marketing landing page for [AI Briefing](https://app.ai-briefing.cc), built with Next.js 16 + Tailwind CSS v4.
 
 ## Getting Started
 

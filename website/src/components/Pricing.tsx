@@ -84,7 +84,7 @@ export default function Pricing() {
             {/* CTA */}
             <div className="px-8 pb-8">
               <a
-                href="https://ai-briefing.vercel.app"
+                href="https://app.ai-briefing.cc"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full cursor-pointer rounded-xl bg-primary py-3.5 text-center font-body text-base font-semibold text-black transition-colors duration-200 hover:bg-primary-alt"
@@ -104,7 +104,7 @@ export default function Pricing() {
           <p className="font-body text-sm text-text-tertiary">
             Not ready to subscribe?{" "}
             <a
-              href="https://ai-briefing.vercel.app"
+              href="https://app.ai-briefing.cc"
               target="_blank"
               rel="noopener noreferrer"
               className="cursor-pointer text-primary transition-colors duration-200 hover:text-primary-alt"

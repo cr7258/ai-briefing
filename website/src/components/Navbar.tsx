@@ -42,7 +42,7 @@ export default function Navbar() {
         {/* CTA Button */}
         <div className="hidden md:block">
           <a
-            href="https://ai-briefing.vercel.app"
+            href="https://app.ai-briefing.cc"
             target="_blank"
             rel="noopener noreferrer"
             className="cursor-pointer rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-black transition-colors duration-200 hover:bg-primary-alt"
@@ -100,7 +100,7 @@ export default function Navbar() {
               Pricing
             </a>
             <a
-              href="https://ai-briefing.vercel.app"
+              href="https://app.ai-briefing.cc"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-2 cursor-pointer rounded-full bg-primary px-5 py-2.5 text-center text-sm font-semibold text-black transition-colors duration-200 hover:bg-primary-alt"

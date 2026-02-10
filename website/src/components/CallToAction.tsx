@@ -22,7 +22,7 @@ export default function CallToAction() {
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <a
-                href="https://ai-briefing.vercel.app"
+                href="https://app.ai-briefing.cc"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group cursor-pointer inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 text-base font-semibold text-black shadow-[0_0_24px_rgba(30,215,96,0.3)] transition-all duration-200 hover:bg-primary-alt hover:shadow-[0_0_32px_rgba(30,215,96,0.4)]"

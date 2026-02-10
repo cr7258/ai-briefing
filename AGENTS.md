@@ -15,7 +15,7 @@ Rust Backend (GitHub Actions cron, daily 05:00 Beijing / 21:00 UTC)
     → RSS crawler + OpenAI summarizer + Volcengine TTS
     → Writes to Supabase DB + Volcengine TOS (audio)
 
-Flutter Web App (Vercel: ai-briefing.vercel.app)
+Flutter Web App (Vercel: app.ai-briefing.cc)
     ↕ Supabase Dart SDK (direct DB reads, Auth, Edge Function calls)
 
 Supabase
