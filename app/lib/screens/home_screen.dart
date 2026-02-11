@@ -447,10 +447,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   ),
                                 ),
                         ),
-                        const SizedBox(width: 8),
-                        _CircleButton(icon: Iconsax.save_add, size: 44),
-                        const SizedBox(width: 6),
-                        _CircleButton(icon: Iconsax.share, size: 44),
                       ],
                     ),
                   ],
@@ -1023,10 +1019,6 @@ class _HeroCard extends StatelessWidget {
                             duration: briefing.hasAudio ? briefing.formattedDuration : null,
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        _CircleButton(icon: Iconsax.save_add, size: 48),
-                        const SizedBox(width: 8),
-                        _CircleButton(icon: Iconsax.share, size: 48),
                       ],
                     ),
                   ],
@@ -1117,27 +1109,6 @@ class _PlayButton extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-class _CircleButton extends StatelessWidget {
-  final IconData icon;
-  final double size;
-
-  const _CircleButton({required this.icon, this.size = 54});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: size,
-      width: size,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
-      ),
-      child: Icon(icon, color: Colors.white, size: size * 0.4),
     );
   }
 }

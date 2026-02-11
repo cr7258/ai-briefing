@@ -106,12 +106,7 @@ class BriefingDetailScreen extends StatelessWidget {
           ),
         ),
       ),
-      actions: [
-        _AppBarButton(icon: Iconsax.heart, onTap: () {}),
-        _AppBarButton(icon: Iconsax.share, onTap: () {}),
-        _AppBarButton(icon: Iconsax.more, onTap: () {}),
-        const SizedBox(width: 8),
-      ],
+      actions: const [],
     );
   }
 
@@ -175,33 +170,6 @@ class BriefingDetailScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppTheme.primary, AppTheme.primaryAlt],
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Iconsax.cpu, size: 14, color: Colors.black),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'AI Briefing',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 12),
-                    width: 4,
-                    height: 4,
-                    decoration: const BoxDecoration(
-                      color: AppTheme.textTertiary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
                   Text(
                     DateFormat('MMM dd, yyyy').format(briefing.date),
                     style: theme.textTheme.bodyMedium,
@@ -223,32 +191,6 @@ class BriefingDetailScreen extends StatelessWidget {
                       style: theme.textTheme.bodyMedium,
                     ),
                   ],
-                ],
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Quick Action Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _QuickActionButton(
-                    icon: Iconsax.document_download,
-                    label: 'Save',
-                    onTap: () {},
-                  ),
-                  const SizedBox(width: 32),
-                  _QuickActionButton(
-                    icon: Iconsax.link_1,
-                    label: 'Share',
-                    onTap: () {},
-                  ),
-                  const SizedBox(width: 32),
-                  _QuickActionButton(
-                    icon: Iconsax.message_text_1,
-                    label: 'Notes',
-                    onTap: () {},
-                  ),
                 ],
               ),
             ],
@@ -383,69 +325,3 @@ class BriefingDetailScreen extends StatelessWidget {
   }
 }
 
-class _AppBarButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _AppBarButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(4),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppTheme.surface.withOpacity(0.8),
-            shape: BoxShape.circle,
-            border: Border.all(color: AppTheme.border),
-          ),
-          child: Icon(icon, size: 18, color: AppTheme.textSecondary),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _QuickActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceVariant,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: Icon(icon, color: AppTheme.textSecondary, size: 18),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppTheme.textTertiary,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

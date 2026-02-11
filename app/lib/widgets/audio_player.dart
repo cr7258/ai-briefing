@@ -252,15 +252,22 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
                     fontFeatures: [FontFeature.tabularFigures()],
                   ),
                 ),
-                // Remaining time
-                Text(
-                  '-${_formatDuration(duration - position)}',
-                  style: const TextStyle(
-                    color: AppTheme.textTertiary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Remaining time
+                    Text(
+                      '-${_formatDuration(duration - position)}',
+                      style: const TextStyle(
+                        color: AppTheme.textTertiary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    _buildSpeedControl(),
+                  ],
                 ),
               ],
             );
@@ -279,35 +286,6 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Speed Control
-        StreamBuilder<double>(
-          stream: _player.speedStream,
-          builder: (context, snapshot) {
-            final speed = snapshot.data ?? 1.0;
-            return GestureDetector(
-              onTap: _cycleSpeed,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceVariant,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.border),
-                ),
-                child: Text(
-                  '${speed}x',
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-        
-        SizedBox(width: spacing),
-        
         // Rewind 15s
         _ControlButton(
           icon: Iconsax.backward_15_seconds,
@@ -405,23 +383,8 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
           },
         ),
         
-        SizedBox(width: spacing),
-        
-        // More Options
-        _ControlButton(
-          icon: Iconsax.more,
-          size: ctrlBtnSize - 4,
-          onTap: () {},
-        ),
       ],
     );
-  }
-
-  void _cycleSpeed() {
-    final speeds = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
-    final currentIndex = speeds.indexOf(_player.speed);
-    final nextIndex = (currentIndex + 1) % speeds.length;
-    _player.setSpeed(speeds[nextIndex]);
   }
 
   String _formatDuration(Duration duration) {
@@ -433,6 +396,65 @@ class _BriefingAudioPlayerState extends State<BriefingAudioPlayer>
       return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     }
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildSpeedControl() {
+    return StreamBuilder<double>(
+      stream: _player.speedStream,
+      builder: (context, snapshot) {
+        final speed = snapshot.data ?? 1.0;
+        return PopupMenuButton<double>(
+          onSelected: (value) => _player.setSpeed(value),
+          offset: const Offset(0, -240),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppTheme.border),
+          ),
+          color: AppTheme.surfaceVariant,
+          itemBuilder: (context) => [0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+              .map((s) => PopupMenuItem<double>(
+                    value: s,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          child: s == speed
+                              ? const Icon(Icons.check, size: 16, color: AppTheme.primary)
+                              : null,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${s}x',
+                          style: TextStyle(
+                            color: s == speed ? AppTheme.primary : AppTheme.textSecondary,
+                            fontWeight: s == speed ? FontWeight.w700 : FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ))
+              .toList(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: Text(
+              '${speed}x',
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
