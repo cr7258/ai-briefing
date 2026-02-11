@@ -42,7 +42,7 @@ export default function PrivacyPolicy() {
                   Account Information
                 </h3>
                 <p className="mt-1">
-                  When you sign in via GitHub OAuth, we receive your GitHub username, email address, and profile avatar. We do not receive or store your GitHub password.
+                  When you sign in via a third-party OAuth provider (Google or GitHub), we receive your name, email address, and profile avatar from that provider. We do not receive or store your passwords. The specific information we receive depends on the provider you use and your account settings with that provider.
                 </p>
               </div>
               <div>
