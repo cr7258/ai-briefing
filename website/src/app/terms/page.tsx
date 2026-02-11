@@ -56,7 +56,7 @@ export default function TermsOfService() {
               2. Accounts
             </h2>
             <p className="mt-4">
-              To access certain features of the Service, you must sign in using your GitHub account via OAuth. You are responsible for maintaining the security of your account and for all activities that occur under it. You agree to provide accurate information and to notify us immediately of any unauthorized use.
+              To access certain features of the Service, you must sign in using your GitHub account via OAuth. You are responsible for maintaining the security of your account and for all activities that occur under it.
             </p>
           </section>
 
