@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
+
+  static const _lastProviderKey = 'last_auth_provider';
 
   /// Get the current web origin for OAuth redirect
   /// In debug mode (localhost), returns the localhost URL
@@ -36,8 +39,21 @@ class AuthService {
   /// Listen to auth state changes
   Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
 
+  /// Get the last used OAuth provider ID (e.g. 'google', 'github')
+  Future<String?> getLastProvider() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_lastProviderKey);
+  }
+
+  /// Save the last used OAuth provider ID
+  Future<void> _saveLastProvider(String providerId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastProviderKey, providerId);
+  }
+
   /// Sign in with GitHub
   Future<void> signInWithGitHub() async {
+    await _saveLastProvider('github');
     await _supabase.auth.signInWithOAuth(
       OAuthProvider.github,
       redirectTo: _webRedirectUrl,
@@ -48,6 +64,7 @@ class AuthService {
 
   /// Sign in with Google
   Future<void> signInWithGoogle() async {
+    await _saveLastProvider('google');
     await _supabase.auth.signInWithOAuth(
       OAuthProvider.google,
       redirectTo: _webRedirectUrl,

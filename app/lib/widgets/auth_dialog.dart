@@ -49,6 +49,20 @@ class AuthDialog extends StatefulWidget {
 class _AuthDialogState extends State<AuthDialog> {
   bool _isLoading = false;
   String? _loadingProviderId;
+  String? _lastProviderId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLastProvider();
+  }
+
+  Future<void> _loadLastProvider() async {
+    final last = await widget.authService.getLastProvider();
+    if (mounted) {
+      setState(() => _lastProviderId = last);
+    }
+  }
 
   List<OAuthProvider> get _providers => [
         OAuthProvider(
@@ -205,6 +219,7 @@ class _AuthDialogState extends State<AuthDialog> {
                   provider: provider,
                   isLoading: _loadingProviderId == provider.id,
                   isDisabled: _isLoading,
+                  isLastUsed: _lastProviderId == provider.id,
                   onPressed: () => _handleSignIn(provider),
                 ).animate().fadeIn(delay: (300 + index * 100).ms).slideY(begin: 0.2, end: 0),
               );
@@ -233,61 +248,132 @@ class _OAuthButton extends StatelessWidget {
   final OAuthProvider provider;
   final bool isLoading;
   final bool isDisabled;
+  final bool isLastUsed;
   final VoidCallback onPressed;
 
   const _OAuthButton({
     required this.provider,
     required this.isLoading,
     required this.isDisabled,
+    this.isLastUsed = false,
     required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: isDisabled ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: provider.backgroundColor,
-          foregroundColor: provider.foregroundColor,
-          disabledBackgroundColor: provider.backgroundColor.withOpacity(0.5),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: provider.backgroundColor == Colors.white
-                  ? AppTheme.border
-                  : Colors.transparent,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Subtle glow behind button when last used
+        if (isLastUsed)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withOpacity(0.12),
+                    blurRadius: 16,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        child: isLoading
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: provider.foregroundColor,
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton(
+            onPressed: isDisabled ? null : onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: provider.backgroundColor,
+              foregroundColor: provider.foregroundColor,
+              disabledBackgroundColor: provider.backgroundColor.withOpacity(0.5),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: isLastUsed
+                      ? AppTheme.primary.withOpacity(0.5)
+                      : provider.backgroundColor == Colors.white
+                          ? AppTheme.border
+                          : Colors.transparent,
+                  width: isLastUsed ? 1.5 : 1,
                 ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  provider.icon,
-                  const SizedBox(width: 12),
-                  Text(
-                    'Continue with ${provider.name}',
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+              ),
+            ),
+            child: isLoading
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
                       color: provider.foregroundColor,
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      provider.icon,
+                      const SizedBox(width: 12),
+                      Text(
+                        'Continue with ${provider.name}',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: provider.foregroundColor,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+        // Floating "Last used" badge
+        if (isLastUsed)
+          Positioned(
+            top: -9,
+            right: -4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primary.withOpacity(0.9),
+                    AppTheme.primary,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(6),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.history_rounded,
+                    size: 10,
+                    color: Colors.black.withOpacity(0.8),
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    'Last used',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black.withOpacity(0.85),
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ],
               ),
-      ),
+            ),
+          ),
+      ],
     );
   }
 }

@@ -106,7 +106,26 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Column(
             children: [
-                const SizedBox(height: 28),
+                const SizedBox(height: 8),
+
+                // Close button
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      color: AppTheme.textTertiary,
+                      size: 20,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppTheme.surface,
+                      padding: const EdgeInsets.all(8),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 4),
 
                 // Title
                 Text(
