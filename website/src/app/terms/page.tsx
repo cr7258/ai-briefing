@@ -76,7 +76,7 @@ export default function TermsOfService() {
             </h2>
             <div className="mt-4 space-y-4">
               <p>
-                AI Briefing offers a paid subscription plan (&quot;Pro Plan&quot;) at $3 USD per month that grants unlimited access to all briefings, category deep dives, audio summaries, and the full archive.
+                AI Briefing offers a paid subscription plan (&quot;Pro Plan&quot;) at $3 USD per month that grants unlimited access to all briefings, category deep dives, and audio summaries.
               </p>
               <p>
                 Payments are processed by Creem, our Merchant of Record. By subscribing, you agree to Creem&apos;s terms of service in addition to these Terms.
