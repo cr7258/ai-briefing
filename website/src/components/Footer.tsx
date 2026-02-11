@@ -42,30 +42,33 @@ export default function Footer() {
               >
                 Pricing
               </a>
-              <a
-                href="https://app.ai-briefing.cc"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="cursor-pointer font-body text-sm text-text-tertiary transition-colors duration-200 hover:text-text-primary"
-              >
-                Open App
-              </a>
             </div>
             <div className="flex flex-col gap-3">
               <p className="font-body text-xs font-semibold uppercase tracking-wider text-text-muted">
                 Legal
               </p>
               <a
-                href="#"
+                href="/privacy"
                 className="cursor-pointer font-body text-sm text-text-tertiary transition-colors duration-200 hover:text-text-primary"
               >
                 Privacy
               </a>
               <a
-                href="#"
+                href="/terms"
                 className="cursor-pointer font-body text-sm text-text-tertiary transition-colors duration-200 hover:text-text-primary"
               >
                 Terms
+              </a>
+            </div>
+            <div className="flex flex-col gap-3">
+              <p className="font-body text-xs font-semibold uppercase tracking-wider text-text-muted">
+                Support
+              </p>
+              <a
+                href="mailto:support@ai-briefing.cc"
+                className="cursor-pointer font-body text-sm text-text-tertiary transition-colors duration-200 hover:text-text-primary"
+              >
+                support@ai-briefing.cc
               </a>
             </div>
           </div>

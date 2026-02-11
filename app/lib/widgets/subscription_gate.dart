@@ -9,9 +9,8 @@ import '../services/auth_service.dart';
 import 'auth_dialog.dart';
 
 /// Utility to gate navigation behind subscription check.
-/// The latest/featured briefing is always free.
 /// Non-subscribed logged-in users get 3 free trial accesses.
-/// Past briefings beyond the trial require an active subscription.
+/// Briefings beyond the trial require an active subscription.
 class SubscriptionGate {
   /// Check subscription / trial and navigate. Shows paywall if not allowed.
   /// Returns true if navigation happened, false if blocked.

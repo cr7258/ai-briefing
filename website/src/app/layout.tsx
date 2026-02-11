@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   description:
     "Stay ahead of AI with daily curated briefings, audio summaries, and category deep dives. Get the most important AI news delivered every day.",
   keywords: ["AI", "news", "briefing", "summary", "daily", "artificial intelligence", "audio"],
+  icons: {
+    icon: "/logo.jpeg",
+    apple: "/logo.jpeg",
+  },
   openGraph: {
     title: "AI Briefing - Your Daily AI News, Summarized",
     description:

@@ -1,9 +1,16 @@
 const includedFeatures = [
-  "Daily AI news briefings",
-  "Audio summaries",
-  "Category deep dives (LLM, Agent, Coding, Infra...)",
-  "Full archive access",
-  "New features as they launch",
+  {
+    title: "Daily AI Briefings",
+    description: "Comprehensive news summaries every day",
+  },
+  {
+    title: "Audio Summaries",
+    description: "Listen to briefings on the go",
+  },
+  {
+    title: "Category Deep Dives",
+    description: "LLM, Agent, Coding, Infra and more",
+  },
 ];
 
 export default function Pricing() {
@@ -57,11 +64,19 @@ export default function Pricing() {
 
             {/* Features list */}
             <div className="px-8 py-6">
-              <ul className="flex flex-col gap-4">
+              <ul className="flex flex-col gap-5">
                 {includedFeatures.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-3">
+                  <li key={index} className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col">
+                      <span className="font-heading text-sm font-semibold text-text-primary">
+                        {feature.title}
+                      </span>
+                      <span className="font-body text-xs text-text-tertiary">
+                        {feature.description}
+                      </span>
+                    </div>
                     <svg
-                      className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary"
+                      className="h-5 w-5 flex-shrink-0 text-primary"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -73,9 +88,6 @@ export default function Pricing() {
                         d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
                       />
                     </svg>
-                    <span className="font-body text-sm text-text-secondary">
-                      {feature}
-                    </span>
                   </li>
                 ))}
               </ul>

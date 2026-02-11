@@ -261,13 +261,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
       child: GestureDetector(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => CategoryBriefingScreen(
-              categoryBriefing: categoryBriefing,
-              date: date,
-            ),
+        onTap: () => SubscriptionGate.navigateIfSubscribed(
+          context,
+          ref,
+          CategoryBriefingScreen(
+            categoryBriefing: categoryBriefing,
+            date: date,
           ),
+          contentType: 'category_briefing',
+          contentId: categoryBriefing.id,
         ),
         child: Container(
           height: Responsive.heroCardHeight(context),
@@ -901,27 +903,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 
 
-class _HeroCard extends StatelessWidget {
+class _HeroCard extends ConsumerWidget {
   final Briefing briefing;
 
   const _HeroCard({required this.briefing});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final heroHeight = Responsive.heroCardHeight(context);
     
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () => Navigator.of(context).push(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => 
-                BriefingDetailScreen(briefing: briefing),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 300),
-          ),
+        onTap: () => SubscriptionGate.navigateIfSubscribed(
+          context,
+          ref,
+          BriefingDetailScreen(briefing: briefing),
+          contentType: 'daily_briefing',
+          contentId: briefing.id,
         ),
         child: Container(
           height: heroHeight,

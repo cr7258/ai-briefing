@@ -212,8 +212,7 @@ CREEM_TEST_MODE        - "true" for sandbox, "false"/"" for production
 
 ### Content Gating
 
-- Latest/featured briefing: **always free** (hero card on home screen)
-- Past briefings: **3 free trials**, then **require subscription** (gated via `SubscriptionGate`)
+- All briefings (including latest): **3 free trials**, then **require subscription** (gated via `SubscriptionGate`)
 - Category briefings: **3 free trials** (shared quota with daily), then **require subscription**
 - The 3 free trial quota is shared across daily and category briefings, tracked per unique content
 - Revisiting already-accessed trial content does NOT consume additional quota
