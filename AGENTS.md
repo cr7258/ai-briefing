@@ -7,8 +7,8 @@
 The project has three main components:
 
 1. **Rust Backend** - Runs daily via GitHub Actions cron. Crawls RSS feeds, generates AI summaries (OpenAI), synthesizes audio (Volcengine TTS), uploads audio to Volcengine TOS, and writes data to Supabase PostgreSQL.
-2. **Flutter Web App** - Deployed on Vercel. Reads data directly from Supabase (no backend API). Uses Supabase Auth (GitHub OAuth) and Riverpod for state management.
-3. **Supabase** - Hosts PostgreSQL database, Auth (GitHub OAuth), and Edge Functions (Deno/TypeScript) for Creem payment integration.
+2. **Flutter Web App** - Deployed on Vercel. Reads data directly from Supabase (no backend API). Uses Supabase Auth (Google + GitHub OAuth) and Riverpod for state management.
+3. **Supabase** - Hosts PostgreSQL database, Auth (Google + GitHub OAuth), and Edge Functions (Deno/TypeScript) for Creem payment integration.
 
 ```
 Rust Backend (GitHub Actions cron, daily 05:00 Beijing / 21:00 UTC)
@@ -19,7 +19,7 @@ Flutter Web App (Vercel: app.ai-briefing.cc)
     ↕ Supabase Dart SDK (direct DB reads, Auth, Edge Function calls)
 
 Supabase
-    ├── Auth (GitHub OAuth)
+    ├── Auth (Google + GitHub OAuth)
     ├── Database (PostgreSQL)
     └── Edge Functions (Deno/TypeScript) → Creem payment
 
@@ -204,7 +204,7 @@ CREEM_TEST_MODE        - "true" for sandbox, "false"/"" for production
 ### Key Patterns
 
 - **State management**: Riverpod (providers in `lib/providers/`)
-- **Auth**: GitHub OAuth via Supabase Auth, implicit flow (`AuthFlowType.implicit` for session persistence on web refresh)
+- **Auth**: Google + GitHub OAuth via Supabase Auth, implicit flow (`AuthFlowType.implicit` for session persistence on web refresh)
 - **Data access**: Direct Supabase queries via `BriefingService` (no backend API)
 - **Subscription gating**: `SubscriptionGate.navigateIfSubscribed()` checks subscription + trial before navigation
 - **Free trial**: Non-subscribed logged-in users get 3 free content accesses (tracked in `user_trial_access` table via `TrialService`)
@@ -220,7 +220,7 @@ CREEM_TEST_MODE        - "true" for sandbox, "false"/"" for production
 
 ### Auth Flow
 
-- OAuth via GitHub (Supabase Auth)
+- OAuth via Google and GitHub (Supabase Auth)
 - `auth_service.dart`: redirect URL is `Uri.base.origin` in debug mode (localhost), `null` in production (uses Supabase Site URL)
 - `main.dart`: uses `AuthFlowType.implicit` to persist session across page refreshes
 - Paywall handles login-first flow: if not logged in, shows auth dialog before creating checkout

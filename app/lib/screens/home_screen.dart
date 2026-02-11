@@ -1,13 +1,16 @@
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/briefing.dart';
 import '../models/category_briefing.dart';
 import '../providers/auth_provider.dart';
 import '../providers/briefing_provider.dart';
+import '../providers/subscription_provider.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../responsive/responsive.dart';
@@ -28,6 +31,39 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedCategoryIndex = 0;
   final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      _handleSubscriptionReturn();
+    }
+  }
+
+  /// Detect ?subscription=success in URL (returned from Creem checkout)
+  /// and force-refresh the auth session + subscription status.
+  /// This ensures the GitHub avatar and user metadata are fully loaded
+  /// after the cross-origin redirect from Creem's payment page.
+  Future<void> _handleSubscriptionReturn() async {
+    final uri = Uri.base;
+    if (uri.queryParameters['subscription'] != 'success') return;
+
+    // Wait for Supabase session restoration to complete first
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    // Force refresh the session from server to ensure full user metadata
+    // (including GitHub avatar_url) is available after the redirect
+    try {
+      await Supabase.instance.client.auth.refreshSession();
+    } catch (e) {
+      debugPrint('Session refresh after checkout return failed: $e');
+    }
+
+    // Refresh subscription status to pick up the new subscription
+    if (mounted) {
+      ref.invalidate(subscriptionProvider);
+    }
+  }
 
   @override
   void dispose() {
@@ -609,9 +645,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       data: (user) {
         if (user != null) {
           // User is logged in - show avatar with menu
-          final avatarUrl = user.userMetadata?['avatar_url'] as String?;
+          // Try stream user first, fall back to in-memory currentUser
+          // (session restoration from localStorage may have fuller metadata)
+          final avatarUrl = user.userMetadata?['avatar_url'] as String?
+              ?? Supabase.instance.client.auth.currentUser?.userMetadata?['avatar_url'] as String?;
           final userName = user.userMetadata?['full_name'] ??
               user.userMetadata?['user_name'] ??
+              Supabase.instance.client.auth.currentUser?.userMetadata?['full_name'] ??
+              Supabase.instance.client.auth.currentUser?.userMetadata?['user_name'] ??
               'User';
 
           return PopupMenuButton<String>(

@@ -19,12 +19,15 @@ class AuthService {
   /// Check if user is logged in
   bool get isLoggedIn => currentUser != null;
 
-  /// Get user's avatar URL from GitHub
-  String? get avatarUrl => currentUser?.userMetadata?['avatar_url'];
+  /// Get user's avatar URL (works for both Google and GitHub)
+  String? get avatarUrl =>
+      currentUser?.userMetadata?['avatar_url'] ??
+      currentUser?.userMetadata?['picture'];
 
-  /// Get user's name from GitHub
+  /// Get user's name (works for both Google and GitHub)
   String? get userName =>
       currentUser?.userMetadata?['full_name'] ??
+      currentUser?.userMetadata?['name'] ??
       currentUser?.userMetadata?['user_name'];
 
   /// Get user's email
@@ -37,6 +40,16 @@ class AuthService {
   Future<void> signInWithGitHub() async {
     await _supabase.auth.signInWithOAuth(
       OAuthProvider.github,
+      redirectTo: _webRedirectUrl,
+      authScreenLaunchMode:
+          kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+    );
+  }
+
+  /// Sign in with Google
+  Future<void> signInWithGoogle() async {
+    await _supabase.auth.signInWithOAuth(
+      OAuthProvider.google,
       redirectTo: _webRedirectUrl,
       authScreenLaunchMode:
           kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,

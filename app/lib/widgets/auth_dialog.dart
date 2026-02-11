@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
@@ -52,6 +52,14 @@ class _AuthDialogState extends State<AuthDialog> {
 
   List<OAuthProvider> get _providers => [
         OAuthProvider(
+          id: 'google',
+          name: 'Google',
+          icon: const _GoogleIcon(),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          onPressed: () => widget.authService.signInWithGoogle(),
+        ),
+        OAuthProvider(
           id: 'github',
           name: 'GitHub',
           icon: const _GitHubIcon(),
@@ -59,15 +67,6 @@ class _AuthDialogState extends State<AuthDialog> {
           foregroundColor: Colors.white,
           onPressed: () => widget.authService.signInWithGitHub(),
         ),
-        // Add more providers here in the future
-        // OAuthProvider(
-        //   id: 'google',
-        //   name: 'Google',
-        //   icon: const _GoogleIcon(),
-        //   backgroundColor: Colors.white,
-        //   foregroundColor: Colors.black87,
-        //   onPressed: () => widget.authService.signInWithGoogle(),
-        // ),
       ];
 
   Future<void> _handleSignIn(OAuthProvider provider) async {
@@ -213,35 +212,6 @@ class _AuthDialogState extends State<AuthDialog> {
 
             const SizedBox(height: 24),
 
-            // Divider with text
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 1,
-                    color: AppTheme.border,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'More options coming soon',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textTertiary,
-                        ),
-                  ),
-                ),
-                Expanded(
-                  child: Container(
-                    height: 1,
-                    color: AppTheme.border,
-                  ),
-                ),
-              ],
-            ).animate().fadeIn(delay: 400.ms),
-
-            const SizedBox(height: 24),
-
             // Footer text
             Text(
               'By signing in, you agree to our Terms of Service and Privacy Policy',
@@ -328,15 +298,15 @@ class _GitHubIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Icon(
-      Iconsax.code,
+    return const FaIcon(
+      FontAwesomeIcons.github,
       size: 20,
       color: Colors.white,
     );
   }
 }
 
-/// Google icon (for future use)
+/// Google icon with official four-color logo
 class _GoogleIcon extends StatelessWidget {
   const _GoogleIcon();
 
@@ -345,11 +315,73 @@ class _GoogleIcon extends StatelessWidget {
     return SizedBox(
       width: 20,
       height: 20,
-      child: Image.network(
-        'https://www.google.com/favicon.ico',
-        errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, size: 20),
+      child: CustomPaint(
+        size: const Size(20, 20),
+        painter: _GoogleLogoPainter(),
       ),
     );
   }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double s = size.width / 24;
+
+    // Blue
+    final bluePath = Path()
+      ..moveTo(21.35 * s, 11.1 * s)
+      ..cubicTo(21.35 * s, 10.36 * s, 21.28 * s, 9.64 * s, 21.16 * s, 8.95 * s)
+      ..lineTo(12 * s, 8.95 * s)
+      ..lineTo(12 * s, 13.02 * s)
+      ..lineTo(17.24 * s, 13.02 * s)
+      ..cubicTo(17.01 * s, 14.26 * s, 16.28 * s, 15.31 * s, 15.22 * s, 16.01 * s)
+      ..lineTo(15.22 * s, 18.45 * s)
+      ..lineTo(18.41 * s, 18.45 * s)
+      ..cubicTo(20.28 * s, 16.73 * s, 21.35 * s, 14.17 * s, 21.35 * s, 11.1 * s)
+      ..close();
+    canvas.drawPath(bluePath, Paint()..color = const Color(0xFF4285F4));
+
+    // Green
+    final greenPath = Path()
+      ..moveTo(12 * s, 21 * s)
+      ..cubicTo(14.7 * s, 21 * s, 16.96 * s, 20.1 * s, 18.41 * s, 18.45 * s)
+      ..lineTo(15.22 * s, 16.01 * s)
+      ..cubicTo(14.35 * s, 16.59 * s, 13.26 * s, 16.93 * s, 12 * s, 16.93 * s)
+      ..cubicTo(9.39 * s, 16.93 * s, 7.19 * s, 15.2 * s, 6.44 * s, 12.91 * s)
+      ..lineTo(3.15 * s, 12.91 * s)
+      ..lineTo(3.15 * s, 15.42 * s)
+      ..cubicTo(4.63 * s, 18.38 * s, 8.09 * s, 21 * s, 12 * s, 21 * s)
+      ..close();
+    canvas.drawPath(greenPath, Paint()..color = const Color(0xFF34A853));
+
+    // Yellow
+    final yellowPath = Path()
+      ..moveTo(6.44 * s, 12.91 * s)
+      ..cubicTo(6.24 * s, 12.33 * s, 6.12 * s, 11.7 * s, 6.12 * s, 11.05 * s)
+      ..cubicTo(6.12 * s, 10.4 * s, 6.24 * s, 9.77 * s, 6.44 * s, 9.19 * s)
+      ..lineTo(6.44 * s, 6.68 * s)
+      ..lineTo(3.15 * s, 6.68 * s)
+      ..cubicTo(2.42 * s, 8.12 * s, 2 * s, 9.74 * s, 2 * s, 11.05 * s)
+      ..cubicTo(2 * s, 12.36 * s, 2.42 * s, 13.98 * s, 3.15 * s, 15.42 * s)
+      ..lineTo(6.44 * s, 12.91 * s)
+      ..close();
+    canvas.drawPath(yellowPath, Paint()..color = const Color(0xFFFBBC05));
+
+    // Red
+    final redPath = Path()
+      ..moveTo(12 * s, 5.17 * s)
+      ..cubicTo(13.4 * s, 5.17 * s, 14.65 * s, 5.66 * s, 15.64 * s, 6.59 * s)
+      ..lineTo(18.46 * s, 3.77 * s)
+      ..cubicTo(16.95 * s, 2.36 * s, 14.7 * s, 1.1 * s, 12 * s, 1.1 * s)
+      ..cubicTo(8.09 * s, 1.1 * s, 4.63 * s, 3.72 * s, 3.15 * s, 6.68 * s)
+      ..lineTo(6.44 * s, 9.19 * s)
+      ..cubicTo(7.19 * s, 6.9 * s, 9.39 * s, 5.17 * s, 12 * s, 5.17 * s)
+      ..close();
+    canvas.drawPath(redPath, Paint()..color = const Color(0xFFEA4335));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
