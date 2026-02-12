@@ -913,25 +913,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          TextButton(
-            onPressed: () {},
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('View All'),
-                const SizedBox(width: 4),
-                Icon(Iconsax.arrow_right_3, size: 16, color: AppTheme.primary),
-              ],
-            ),
-          ),
-        ],
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleLarge,
       ),
     );
   }
