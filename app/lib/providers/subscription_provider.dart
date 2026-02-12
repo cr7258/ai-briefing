@@ -10,19 +10,16 @@ final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
 });
 
 /// Provider for current user's subscription
-/// Automatically refreshes when auth state changes
+/// Automatically refreshes when auth state changes.
+/// Uses .future to properly wait for auth state to resolve before querying,
+/// preventing false-negative subscription checks on initial page load.
 final subscriptionProvider = FutureProvider<UserSubscription?>((ref) async {
-  // Watch auth state - when user logs in/out, this re-evaluates
-  final userAsync = ref.watch(currentUserProvider);
+  // Await auth state - ensures we wait for session restore before checking
+  final user = await ref.watch(currentUserProvider.future);
+  if (user == null) return null;
 
-  return userAsync.maybeWhen(
-    data: (user) async {
-      if (user == null) return null;
-      final service = ref.read(subscriptionServiceProvider);
-      return service.getSubscription();
-    },
-    orElse: () => null,
-  );
+  final service = ref.read(subscriptionServiceProvider);
+  return service.getSubscription();
 });
 
 /// Simple boolean provider for gating content

@@ -24,11 +24,17 @@ class SubscriptionGate {
     required String contentType,
     required String contentId,
   }) async {
-    // 1. If subscribed, navigate immediately
-    final hasSubscription = ref.read(hasActiveSubscriptionProvider);
-    if (hasSubscription) {
-      _navigate(context, destination);
-      return true;
+    // 1. Wait for subscription data to fully load, then check.
+    // This prevents false negatives when auth/subscription is still loading
+    // on initial page load (e.g. session restoring from localStorage).
+    try {
+      final subscription = await ref.read(subscriptionProvider.future);
+      if (subscription?.isActive ?? false) {
+        if (context.mounted) _navigate(context, destination);
+        return true;
+      }
+    } catch (_) {
+      // If subscription check fails, continue to other checks
     }
 
     // 2. If not logged in, prompt login first
@@ -43,10 +49,16 @@ class SubscriptionGate {
       if (!ref.read(isLoggedInProvider)) return false;
 
       // After login, check subscription again (user might already be subscribed)
-      final nowSubscribed = ref.read(hasActiveSubscriptionProvider);
-      if (nowSubscribed) {
-        _navigate(context, destination);
-        return true;
+      try {
+        // Invalidate to force re-fetch with the now-logged-in user
+        ref.invalidate(subscriptionProvider);
+        final subscription = await ref.read(subscriptionProvider.future);
+        if (subscription?.isActive ?? false) {
+          if (context.mounted) _navigate(context, destination);
+          return true;
+        }
+      } catch (_) {
+        // Continue to trial check
       }
     }
 
@@ -71,14 +83,10 @@ class SubscriptionGate {
 
     // If user completed checkout flow, refresh subscription and try again
     if (result == true) {
-      final refresh = ref.read(refreshSubscriptionProvider);
-      await refresh();
+      ref.invalidate(subscriptionProvider);
+      final subscription = await ref.read(subscriptionProvider.future);
 
-      // Wait for subscription data to refresh
-      await Future.delayed(const Duration(seconds: 2));
-
-      final nowSubscribed = ref.read(hasActiveSubscriptionProvider);
-      if (nowSubscribed && context.mounted) {
+      if ((subscription?.isActive ?? false) && context.mounted) {
         _navigate(context, destination);
         return true;
       }
