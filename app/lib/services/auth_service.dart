@@ -58,7 +58,7 @@ class AuthService {
       OAuthProvider.github,
       redirectTo: _webRedirectUrl,
       authScreenLaunchMode:
-          kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+          kIsWeb ? LaunchMode.platformDefault : LaunchMode.inAppBrowserView,
     );
   }
 
@@ -69,7 +69,7 @@ class AuthService {
       OAuthProvider.google,
       redirectTo: _webRedirectUrl,
       authScreenLaunchMode:
-          kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+          kIsWeb ? LaunchMode.platformDefault : LaunchMode.inAppBrowserView,
     );
   }
 

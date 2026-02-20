@@ -8,22 +8,42 @@ import '../providers/auth_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../providers/trial_provider.dart';
 import '../services/auth_service.dart';
+import '../services/revenuecat_service.dart';
 import '../services/subscription_service.dart';
 import '../services/trial_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_dialog.dart';
 
-/// Paywall screen shown when user tries to access premium content
+/// Paywall screen shown when user tries to access premium content.
+/// On iOS: uses RevenueCat's built-in paywall UI (Apple IAP).
+/// On Web: uses custom paywall with Creem checkout.
 class PaywallScreen extends ConsumerStatefulWidget {
   const PaywallScreen({super.key});
 
-  /// Show as a centered dialog
-  static Future<bool?> show(BuildContext context) {
+  /// Show paywall. On iOS, presents RevenueCat paywall. On Web, shows custom dialog.
+  /// Returns true if user subscribed.
+  static Future<bool?> show(BuildContext context, {WidgetRef? ref}) async {
+    if (RevenueCatService.isAvailable) {
+      return _showRevenueCatPaywall(context, ref);
+    }
     return showDialog<bool>(
       context: context,
       barrierColor: Colors.black.withOpacity(0.7),
       builder: (context) => const PaywallScreen(),
     );
+  }
+
+  /// iOS: Use RevenueCat's built-in paywall
+  static Future<bool?> _showRevenueCatPaywall(
+    BuildContext context,
+    WidgetRef? ref,
+  ) async {
+    final rcService = RevenueCatService();
+    final success = await rcService.showPaywall(context);
+    if (success && ref != null) {
+      ref.invalidate(subscriptionProvider);
+    }
+    return success;
   }
 
   @override
@@ -36,13 +56,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Future<void> _handleSubscribe() async {
     final isLoggedIn = ref.read(isLoggedInProvider);
 
-    // If not logged in, show auth dialog first
     if (!isLoggedIn) {
       final authService = ref.read(authServiceProvider);
       await AuthDialog.show(context, authService);
-      // After auth dialog closes, check if now logged in
       if (!mounted) return;
-      // Wait a moment for auth state to propagate
       await Future.delayed(const Duration(milliseconds: 500));
       if (!ref.read(isLoggedInProvider)) return;
     }
@@ -53,7 +70,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       final service = ref.read(subscriptionServiceProvider);
       final checkoutUrl = await service.createCheckout();
 
-      // Open checkout in external browser
       final uri = Uri.parse(checkoutUrl);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -61,7 +77,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         throw Exception('Could not open checkout page');
       }
 
-      // Close paywall after redirecting to checkout
       if (mounted) {
         Navigator.of(context).pop(true);
       }
@@ -138,7 +153,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
                 const SizedBox(height: 12),
 
-                // Subtitle - show trial exhaustion or default message
+                // Subtitle
                 Builder(builder: (context) {
                   final remaining = ref.watch(remainingTrialsProvider);
                   final subtitle = remaining <= 0

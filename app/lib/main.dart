@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -7,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/supabase_config.dart';
 import 'screens/home_screen.dart';
+import 'services/revenuecat_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -19,13 +21,23 @@ void main() async {
   await initializeDateFormatting();
 
   // Initialize Supabase
+  // Web uses implicit flow for session persistence on refresh;
+  // iOS/Android uses PKCE flow for secure deep link callback.
   await Supabase.initialize(
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
-    authOptions: const FlutterAuthClientOptions(
-      authFlowType: AuthFlowType.implicit,
+    authOptions: FlutterAuthClientOptions(
+      authFlowType: kIsWeb ? AuthFlowType.implicit : AuthFlowType.pkce,
     ),
   );
+
+  // Initialize RevenueCat for Apple IAP (iOS only)
+  if (RevenueCatService.isAvailable) {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      await RevenueCatService.init(userId: user.id);
+    }
+  }
 
   // Configure Status Bar for OLED black theme
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(

@@ -38,11 +38,20 @@ dependencies:
   iconsax_flutter: ^1.0.1
   font_awesome_flutter: ^10.12.0
   shared_preferences: ^2.5.4
+  purchases_flutter: ^8.0.0
+  purchases_ui_flutter: ^8.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  ios: true
+  android: false
+  image_path: "assets/app_icon_1024.png"
+  remove_alpha_ios: true
 
 flutter:
   uses-material-design: true
