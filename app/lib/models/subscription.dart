@@ -10,6 +10,9 @@ class UserSubscription {
   final DateTime? canceledAt;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String subscriptionSource; // 'creem' or 'apple'
+  final String? appleOriginalTransactionId;
+  final String? revenuecatCustomerId;
 
   UserSubscription({
     required this.id,
@@ -22,6 +25,9 @@ class UserSubscription {
     this.canceledAt,
     required this.createdAt,
     required this.updatedAt,
+    this.subscriptionSource = 'creem',
+    this.appleOriginalTransactionId,
+    this.revenuecatCustomerId,
   });
 
   factory UserSubscription.fromJson(Map<String, dynamic> json) {
@@ -40,6 +46,10 @@ class UserSubscription {
           : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      subscriptionSource: json['subscription_source'] as String? ?? 'creem',
+      appleOriginalTransactionId:
+          json['apple_original_transaction_id'] as String?,
+      revenuecatCustomerId: json['revenuecat_customer_id'] as String?,
     );
   }
 
@@ -60,4 +70,10 @@ class UserSubscription {
 
   /// Whether the subscription is expired
   bool get isExpired => status == 'expired' || status == 'inactive';
+
+  /// Whether this subscription is from Apple IAP
+  bool get isApple => subscriptionSource == 'apple';
+
+  /// Whether this subscription is from Creem
+  bool get isCreem => subscriptionSource == 'creem';
 }

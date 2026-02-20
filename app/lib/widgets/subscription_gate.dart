@@ -6,6 +6,7 @@ import '../providers/subscription_provider.dart';
 import '../providers/trial_provider.dart';
 import '../screens/paywall_screen.dart';
 import '../services/auth_service.dart';
+import '../services/revenuecat_service.dart';
 import 'auth_dialog.dart';
 
 /// Utility to gate navigation behind subscription check.
@@ -48,6 +49,14 @@ class SubscriptionGate {
       await Future.delayed(const Duration(milliseconds: 500));
       if (!ref.read(isLoggedInProvider)) return false;
 
+      // Initialize RevenueCat for the newly logged-in user (iOS only)
+      if (RevenueCatService.isAvailable) {
+        final user = ref.read(currentUserProvider).value;
+        if (user != null) {
+          await RevenueCatService.init(userId: user.id);
+        }
+      }
+
       // After login, check subscription again (user might already be subscribed)
       try {
         // Invalidate to force re-fetch with the now-logged-in user
@@ -79,17 +88,37 @@ class SubscriptionGate {
 
     // 4. Trial exhausted - show paywall
     if (!context.mounted) return false;
-    final result = await PaywallScreen.show(context);
+    final result = await PaywallScreen.show(context, ref: ref);
 
-    // If user completed checkout flow, refresh subscription and try again
+    // If user completed checkout flow, refresh subscription and try again.
+    // On iOS (Apple IAP), the purchase completes in-app but the webhook
+    // may take a few seconds to update the DB. Poll with retries.
     if (result == true) {
-      ref.invalidate(subscriptionProvider);
-      final subscription = await ref.read(subscriptionProvider.future);
+      final isActive = await _waitForActiveSubscription(ref);
 
-      if ((subscription?.isActive ?? false) && context.mounted) {
+      if (isActive && context.mounted) {
         _navigate(context, destination);
         return true;
       }
+    }
+
+    return false;
+  }
+
+  /// Poll subscription status with retries.
+  /// On iOS, the RevenueCat webhook may take a moment to reach Supabase.
+  static Future<bool> _waitForActiveSubscription(WidgetRef ref) async {
+    const maxAttempts = 5;
+    const delay = Duration(seconds: 2);
+
+    for (var i = 0; i < maxAttempts; i++) {
+      ref.invalidate(subscriptionProvider);
+      try {
+        final subscription = await ref.read(subscriptionProvider.future);
+        if (subscription?.isActive ?? false) return true;
+      } catch (_) {}
+
+      if (i < maxAttempts - 1) await Future.delayed(delay);
     }
 
     return false;

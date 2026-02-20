@@ -7,24 +7,31 @@
 The project has three main components:
 
 1. **Rust Backend** - Runs daily via GitHub Actions cron. Crawls RSS feeds, generates AI summaries (OpenAI), synthesizes audio (Volcengine TTS), uploads audio to Volcengine TOS, and writes data to Supabase PostgreSQL.
-2. **Flutter Web App** - Deployed on Vercel. Reads data directly from Supabase (no backend API). Uses Supabase Auth (Google + GitHub OAuth) and Riverpod for state management.
-3. **Supabase** - Hosts PostgreSQL database, Auth (Google + GitHub OAuth), and Edge Functions (Deno/TypeScript) for Creem payment integration.
+2. **Flutter App** - Web deployed on Vercel, iOS via App Store. Reads data directly from Supabase (no backend API). Uses Supabase Auth (Google + GitHub OAuth) and Riverpod for state management. Dual payment: Creem (web) + Apple IAP via RevenueCat (iOS).
+3. **Supabase** - Hosts PostgreSQL database, Auth (Google + GitHub OAuth), and Edge Functions (Deno/TypeScript) for Creem payment and RevenueCat webhook integration.
 
 ```
 Rust Backend (GitHub Actions cron, daily 05:00 Beijing / 21:00 UTC)
     → RSS crawler + OpenAI summarizer + Volcengine TTS
     → Writes to Supabase DB + Volcengine TOS (audio)
 
-Flutter Web App (Vercel: app.ai-briefing.cc)
+Flutter App
+    ├── Web (Vercel: app.ai-briefing.cc) → Creem for payments
+    └── iOS (App Store) → Apple IAP via RevenueCat for payments
     ↕ Supabase Dart SDK (direct DB reads, Auth, Edge Function calls)
 
 Supabase
     ├── Auth (Google + GitHub OAuth)
     ├── Database (PostgreSQL)
-    └── Edge Functions (Deno/TypeScript) → Creem payment
+    └── Edge Functions (Deno/TypeScript)
+        ├── Creem payment (web)
+        └── RevenueCat webhook (iOS Apple IAP)
 
-Creem (Payment provider)
+Creem (Web payment provider)
     → Webhook → Supabase Edge Function → DB
+
+RevenueCat (iOS payment management)
+    → Apple IAP → RevenueCat Server → Webhook → Supabase Edge Function → DB
 ```
 
 ---
@@ -93,6 +100,7 @@ ai-briefing/
 │       ├── services/
 │       │   ├── auth_service.dart
 │       │   ├── briefing_service.dart
+│       │   ├── revenuecat_service.dart  # RevenueCat Apple IAP (iOS only)
 │       │   ├── subscription_service.dart
 │       │   └── trial_service.dart
 │       ├── theme/
@@ -113,8 +121,10 @@ ai-briefing/
 │   │   │   └── index.ts
 │   │   ├── creem-webhook/
 │   │   │   └── index.ts
-│   │   └── customer-portal/
-│   │       └── index.ts
+│   │   ├── customer-portal/
+│   │   │   └── index.ts
+│   │   └── revenuecat-webhook/
+│   │       └── index.ts             # RevenueCat Apple IAP webhook
 │   └── migrations/
 │       ├── 001_create_tables.sql
 │       ├── 002_seed_sources.sql
@@ -122,7 +132,8 @@ ai-briefing/
 │       ├── 004_add_more_sources.sql
 │       ├── 005_add_category_briefing_title.sql
 │       ├── 006_add_user_subscriptions.sql
-│       └── 007_add_user_trial_access.sql
+│       ├── 007_add_user_trial_access.sql
+│       └── 008_add_apple_iap_fields.sql  # Apple IAP / RevenueCat fields
 │
 └── .github/workflows/
     ├── daily-briefing.yml            # Rust cron job (daily 21:00 UTC)
@@ -142,7 +153,7 @@ ai-briefing/
 | `news_sources` | RSS feed configuration | Read | Read |
 | `articles` | Individual classified news articles | Write | Read |
 | `category_briefings` | Per-category summaries (LLM, Agent, Coding, etc.) | Write | Read |
-| `user_subscriptions` | Creem subscription status | - | Read (Edge Functions write) |
+| `user_subscriptions` | Subscription status (Creem + Apple IAP) | - | Read (Edge Functions write) |
 | `user_trial_access` | Free trial content access tracking (max 3) | - | Read/Write |
 
 ### Categories (article classification)
@@ -157,15 +168,20 @@ The AI classifier assigns articles to these categories: `llm`, `agent`, `coding`
 
 ---
 
-## Payment / Subscription System (Creem)
+## Payment / Subscription System
+
+Dual payment channels: **Creem** (web) and **Apple IAP via RevenueCat** (iOS).
+
+Both channels write to the same `user_subscriptions` table. The `subscription_source` column tracks which channel (`creem` or `apple`). Subscription status logic is the same regardless of source.
 
 ### Supabase Edge Functions
 
 | Function | Purpose | JWT Verify |
 |----------|---------|------------|
-| `create-checkout` | Creates Creem checkout session, returns payment URL | `--no-verify-jwt` (auth handled in code) |
-| `creem-webhook` | Receives Creem webhook events, updates subscription | `--no-verify-jwt` (Creem has no Supabase JWT) |
-| `customer-portal` | Generates Creem billing portal link | `--no-verify-jwt` (auth handled in code) |
+| `create-checkout` | Creates Creem checkout session, returns payment URL (web) | `--no-verify-jwt` (auth handled in code) |
+| `creem-webhook` | Receives Creem webhook events, updates subscription (web) | `--no-verify-jwt` (Creem has no Supabase JWT) |
+| `customer-portal` | Generates Creem billing portal link (web) | `--no-verify-jwt` (auth handled in code) |
+| `revenuecat-webhook` | Receives RevenueCat webhook events for Apple IAP (iOS) | `--no-verify-jwt` (auth via Bearer token) |
 
 Shared utilities in `supabase/functions/_shared/`:
 - `creem.ts` - Creem API helpers (base URL toggle via `CREEM_TEST_MODE`, headers, HMAC-SHA256 webhook signature verification)
@@ -181,13 +197,17 @@ Shared utilities in `supabase/functions/_shared/`:
 ### Environment Variables (Supabase Edge Function Secrets)
 
 ```
-CREEM_API_KEY          - Creem API key
-CREEM_WEBHOOK_SECRET   - Webhook signing secret (HMAC-SHA256)
-CREEM_PRODUCT_ID       - Creem product ID for the subscription
-CREEM_TEST_MODE        - "true" for sandbox, "false"/"" for production
+# Creem (web payments)
+CREEM_API_KEY              - Creem API key
+CREEM_WEBHOOK_SECRET       - Webhook signing secret (HMAC-SHA256)
+CREEM_PRODUCT_ID           - Creem product ID for the subscription
+CREEM_TEST_MODE            - "true" for sandbox, "false"/"" for production
+
+# RevenueCat (iOS Apple IAP)
+REVENUECAT_WEBHOOK_AUTH_KEY - Shared secret for webhook authorization
 ```
 
-### Webhook Events Handled
+### Creem Webhook Events (Web)
 
 - `checkout.completed` → create subscription record (status=active)
 - `subscription.active` / `subscription.paid` → grant access
@@ -196,6 +216,21 @@ CREEM_TEST_MODE        - "true" for sandbox, "false"/"" for production
 - `subscription.expired` → revoke access
 - `subscription.paused` → pause access
 - `refund.created` → revoke access
+
+### RevenueCat Webhook Events (iOS)
+
+- `INITIAL_PURCHASE` / `RENEWAL` / `UNCANCELLATION` → grant access (status=active)
+- `CANCELLATION` → keep access until period end (status=canceled)
+- `EXPIRATION` → revoke access (status=expired)
+- `PRODUCT_CHANGE` → update if still has premium entitlement
+
+### Apple IAP / RevenueCat Setup
+
+- RevenueCat manages Apple IAP complexity (receipt validation, renewals, refunds)
+- Flutter uses `purchases_flutter` SDK (RevenueCat)
+- RevenueCat `appUserID` is set to Supabase user ID for cross-platform identity
+- Entitlement name: `AI Briefing Pro`
+- RevenueCat Webhook URL: `<SUPABASE_URL>/functions/v1/revenuecat-webhook`
 
 ---
 
@@ -208,7 +243,8 @@ CREEM_TEST_MODE        - "true" for sandbox, "false"/"" for production
 - **Data access**: Direct Supabase queries via `BriefingService` (no backend API)
 - **Subscription gating**: `SubscriptionGate.navigateIfSubscribed()` checks subscription + trial before navigation
 - **Free trial**: Non-subscribed logged-in users get 3 free content accesses (tracked in `user_trial_access` table via `TrialService`)
-- **Paywall**: `PaywallScreen.show()` displays centered dialog with pricing and checkout flow
+- **Paywall**: `PaywallScreen.show()` displays centered dialog with pricing and checkout flow. Platform-aware: Apple IAP on iOS, Creem on web.
+- **Apple IAP (iOS)**: `RevenueCatService` wraps `purchases_flutter` SDK. Initialized in `main.dart` with Supabase user ID. Purchase triggers native Apple payment sheet.
 
 ### Content Gating
 
@@ -259,6 +295,7 @@ cd /path/to/ai-briefing
 supabase functions deploy create-checkout --no-verify-jwt
 supabase functions deploy creem-webhook --no-verify-jwt
 supabase functions deploy customer-portal --no-verify-jwt
+supabase functions deploy revenuecat-webhook --no-verify-jwt
 ```
 
 ### Database Migrations
@@ -294,6 +331,14 @@ cargo run --release -- --run-now  # Run once immediately
 supabase functions serve --env-file supabase/.env.local
 # For webhook testing: ngrok http 54321, then set ngrok URL in Creem Dashboard
 ```
+
+### Flutter App Environment Variables (`.env`)
+
+| Variable | Purpose |
+|----------|---------|
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_PUBLISHABLE_KEY` | Supabase anon key |
+| `REVENUECAT_APPLE_API_KEY` | RevenueCat Apple API key (iOS only) |
 
 ### Backend Environment Variables
 
