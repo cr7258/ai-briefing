@@ -16,7 +16,7 @@ export default function PrivacyPolicy() {
           Privacy Policy
         </h1>
         <p className="mt-2 font-body text-sm text-text-tertiary">
-          Last updated: February 11, 2026
+          Last updated: February 15, 2026
         </p>
 
         <div className="mt-10 space-y-10 font-body text-base leading-relaxed text-text-secondary">
@@ -27,7 +27,7 @@ export default function PrivacyPolicy() {
               <a href="https://app.ai-briefing.cc" className="text-primary hover:text-primary-alt transition-colors">
                 app.ai-briefing.cc
               </a>{" "}
-              . This Privacy Policy explains how we collect, use, disclose, and protect your information when you use our service.
+              and the AI Briefing mobile app. This Privacy Policy explains how we collect, use, disclose, and protect your information when you use our service.
             </p>
           </section>
 
@@ -42,7 +42,7 @@ export default function PrivacyPolicy() {
                   Account Information
                 </h3>
                 <p className="mt-1">
-                  When you sign in via a third-party OAuth provider (Google or GitHub), we receive your name, email address, and profile avatar from that provider. We do not receive or store your passwords. The specific information we receive depends on the provider you use and your account settings with that provider.
+                  When you sign in via a third-party provider (Google, GitHub, or Apple), we receive your name, email address, and profile avatar from that provider. We do not receive or store your passwords. When using Sign in with Apple, you may choose to hide your email address; in that case, Apple provides a private relay email. The specific information we receive depends on the provider you use and your account settings with that provider.
                 </p>
               </div>
               <div>
@@ -50,7 +50,7 @@ export default function PrivacyPolicy() {
                   Payment Information
                 </h3>
                 <p className="mt-1">
-                  Payments are processed by our payment partner, Creem. We do not directly collect or store your credit card numbers or banking details. Creem may collect payment information in accordance with their own privacy policy.
+                  On the web, payments are processed by our payment partner, Creem. On iOS, payments are processed through Apple&apos;s App Store (In-App Purchase), managed via RevenueCat. We do not directly collect or store your credit card numbers or banking details. These payment providers may collect payment information in accordance with their own privacy policies.
                 </p>
               </div>
               <div>

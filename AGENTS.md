@@ -7,8 +7,8 @@
 The project has three main components:
 
 1. **Rust Backend** - Runs daily via GitHub Actions cron. Crawls RSS feeds, generates AI summaries (OpenAI), synthesizes audio (Volcengine TTS), uploads audio to Volcengine TOS, and writes data to Supabase PostgreSQL.
-2. **Flutter App** - Web deployed on Vercel, iOS via App Store. Reads data directly from Supabase (no backend API). Uses Supabase Auth (Google + GitHub OAuth) and Riverpod for state management. Dual payment: Creem (web) + Apple IAP via RevenueCat (iOS).
-3. **Supabase** - Hosts PostgreSQL database, Auth (Google + GitHub OAuth), and Edge Functions (Deno/TypeScript) for Creem payment and RevenueCat webhook integration.
+2. **Flutter App** - Web deployed on Vercel, iOS via App Store. Reads data directly from Supabase (no backend API). Uses Supabase Auth (Google + GitHub + Apple OAuth) and Riverpod for state management. Dual payment: Creem (web) + Apple IAP via RevenueCat (iOS).
+3. **Supabase** - Hosts PostgreSQL database, Auth (Google + GitHub + Apple OAuth), and Edge Functions (Deno/TypeScript) for Creem payment and RevenueCat webhook integration.
 
 ```
 Rust Backend (GitHub Actions cron, daily 05:00 Beijing / 21:00 UTC)
@@ -21,7 +21,7 @@ Flutter App
     ↕ Supabase Dart SDK (direct DB reads, Auth, Edge Function calls)
 
 Supabase
-    ├── Auth (Google + GitHub OAuth)
+    ├── Auth (Google + GitHub + Apple OAuth)
     ├── Database (PostgreSQL)
     └── Edge Functions (Deno/TypeScript)
         ├── Creem payment (web)
@@ -239,7 +239,7 @@ REVENUECAT_WEBHOOK_AUTH_KEY - Shared secret for webhook authorization
 ### Key Patterns
 
 - **State management**: Riverpod (providers in `lib/providers/`)
-- **Auth**: Google + GitHub OAuth via Supabase Auth, implicit flow (`AuthFlowType.implicit` for session persistence on web refresh)
+- **Auth**: Google + GitHub + Apple OAuth via Supabase Auth. Web uses implicit flow for session persistence; iOS uses PKCE flow. Apple Sign-In uses native `sign_in_with_apple` SDK on iOS, OAuth on web.
 - **Data access**: Direct Supabase queries via `BriefingService` (no backend API)
 - **Subscription gating**: `SubscriptionGate.navigateIfSubscribed()` checks subscription + trial before navigation
 - **Free trial**: Non-subscribed logged-in users get 3 free content accesses (tracked in `user_trial_access` table via `TrialService`)
@@ -256,9 +256,10 @@ REVENUECAT_WEBHOOK_AUTH_KEY - Shared secret for webhook authorization
 
 ### Auth Flow
 
-- OAuth via Google and GitHub (Supabase Auth)
-- `auth_service.dart`: redirect URL is `Uri.base.origin` in debug mode (localhost), `null` in production (uses Supabase Site URL)
-- `main.dart`: uses `AuthFlowType.implicit` to persist session across page refreshes
+- OAuth via Google, GitHub, and Apple (Supabase Auth)
+- `auth_service.dart`: redirect URL is `Uri.base.origin` in debug mode (localhost), `null` in production (uses Supabase Site URL). On iOS, redirect uses `io.supabase.aibriefing://login-callback` deep link.
+- `main.dart`: Web uses `AuthFlowType.implicit` to persist session; iOS/Android uses `AuthFlowType.pkce` for secure deep link callback.
+- Apple Sign-In: On iOS, uses native `sign_in_with_apple` SDK with `signInWithIdToken()` (nonce-based). On web, uses standard OAuth flow.
 - Paywall handles login-first flow: if not logged in, shows auth dialog before creating checkout
 
 ### Design

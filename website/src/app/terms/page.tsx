@@ -16,7 +16,7 @@ export default function TermsOfService() {
           Terms of Service
         </h1>
         <p className="mt-2 font-body text-sm text-text-tertiary">
-          Last updated: February 11, 2026
+          Last updated: February 15, 2026
         </p>
 
         <div className="mt-10 space-y-10 font-body text-base leading-relaxed text-text-secondary">
@@ -26,8 +26,8 @@ export default function TermsOfService() {
               These Terms of Service govern your access to and use of{" "}
               <a href="https://app.ai-briefing.cc" className="text-primary hover:text-primary-alt transition-colors">
                 app.ai-briefing.cc
-              </a>
-              , operated by AI Briefing (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;).
+              </a>{" "}
+              and the AI Briefing mobile app, operated by AI Briefing (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;).
             </p>
             <p className="mt-4">
               By using the Service, you confirm that you have read, understood and agree to be bound by these Terms of Service, as amended from time to time.
@@ -56,7 +56,7 @@ export default function TermsOfService() {
               2. Accounts
             </h2>
             <p className="mt-4">
-              To access certain features of the Service, you must sign in using a supported third-party account (Google or GitHub) via OAuth. You are responsible for maintaining the security of your account and for all activities that occur under it. We may add or remove supported sign-in providers at any time.
+              To access certain features of the Service, you must sign in using a supported third-party account (Google, GitHub, or Apple) via OAuth. You are responsible for maintaining the security of your account and for all activities that occur under it. We may add or remove supported sign-in providers at any time.
             </p>
           </section>
 
@@ -79,13 +79,13 @@ export default function TermsOfService() {
                 AI Briefing offers a paid subscription plan (&quot;Pro Plan&quot;) at $3 USD per month that grants unlimited access to all briefings, category deep dives, and audio summaries.
               </p>
               <p>
-                Payments are processed by Creem, our Merchant of Record. By subscribing, you agree to Creem&apos;s terms of service in addition to these Terms.
+                On the web, payments are processed by Creem, our Merchant of Record. On iOS, payments are processed through Apple&apos;s App Store via In-App Purchase. By subscribing, you agree to the applicable payment provider&apos;s terms of service in addition to these Terms.
               </p>
               <p>
                 <strong className="text-text-primary">Auto-Renewal:</strong> Your subscription will automatically renew each month at the then-current rate. You will be charged at the start of each renewal period.
               </p>
               <p>
-                <strong className="text-text-primary">Cancellation:</strong> You may cancel your subscription at any time from your account settings or via the Creem customer portal. Upon cancellation, you will retain access until the end of the current billing period.
+                <strong className="text-text-primary">Cancellation:</strong> You may cancel your subscription at any time. On the web, cancel via your account settings or the Creem customer portal. On iOS, cancel via your Apple ID subscription settings. Upon cancellation, you will retain access until the end of the current billing period.
               </p>
               <p>
                 <strong className="text-text-primary">Refunds:</strong> Subscription fees are generally non-refundable. If you believe you are entitled to a refund, please contact us at{" "}
