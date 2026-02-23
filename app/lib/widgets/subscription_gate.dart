@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/subscription_provider.dart';
@@ -10,14 +11,13 @@ import '../services/revenuecat_service.dart';
 import 'auth_dialog.dart';
 
 /// Utility to gate navigation behind subscription check.
-/// Non-subscribed logged-in users get 3 free trial accesses.
-/// Briefings beyond the trial require an active subscription.
+/// Anonymous users get 3 free content accesses (tracked locally).
+/// Logged-in non-subscribed users also get 3 free accesses (tracked in DB).
+/// Beyond that, subscription is required.
 class SubscriptionGate {
-  /// Check subscription / trial and navigate. Shows paywall if not allowed.
-  /// Returns true if navigation happened, false if blocked.
-  ///
-  /// [contentType] and [contentId] are required for trial tracking.
-  /// contentType should be 'daily_briefing' or 'category_briefing'.
+  static const int _maxAnonymousTrials = 3;
+  static const String _anonymousTrialKey = 'anonymous_trial_ids';
+
   static Future<bool> navigateIfSubscribed(
     BuildContext context,
     WidgetRef ref,
@@ -25,77 +25,101 @@ class SubscriptionGate {
     required String contentType,
     required String contentId,
   }) async {
-    // 1. Wait for subscription data to fully load, then check.
-    // This prevents false negatives when auth/subscription is still loading
-    // on initial page load (e.g. session restoring from localStorage).
+    // 1. Check subscription (if logged in)
     try {
       final subscription = await ref.read(subscriptionProvider.future);
       if (subscription?.isActive ?? false) {
         if (context.mounted) _navigate(context, destination);
         return true;
       }
-    } catch (_) {
-      // If subscription check fails, continue to other checks
-    }
+    } catch (_) {}
 
-    // 2. If not logged in, prompt login first
     final isLoggedIn = ref.read(isLoggedInProvider);
-    if (!isLoggedIn) {
-      final authService = ref.read(authServiceProvider);
-      await AuthDialog.show(context, authService);
-      if (!context.mounted) return false;
 
-      // Wait for auth state to propagate
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (!ref.read(isLoggedInProvider)) return false;
+    // 2. If logged in, use DB-based trial
+    if (isLoggedIn) {
+      final trialService = ref.read(trialServiceProvider);
+      final granted = await trialService.tryAccessContent(contentType, contentId);
 
-      // Initialize RevenueCat for the newly logged-in user (iOS only)
-      if (RevenueCatService.isAvailable) {
-        final user = ref.read(currentUserProvider).value;
-        if (user != null) {
-          await RevenueCatService.init(userId: user.id);
-        }
+      if (granted) {
+        final refreshTrial = ref.read(refreshTrialProvider);
+        await refreshTrial();
+        if (context.mounted) _navigate(context, destination);
+        return true;
       }
 
-      // After login, check subscription again (user might already be subscribed)
-      try {
-        // Invalidate to force re-fetch with the now-logged-in user
-        ref.invalidate(subscriptionProvider);
-        final subscription = await ref.read(subscriptionProvider.future);
-        if (subscription?.isActive ?? false) {
-          if (context.mounted) _navigate(context, destination);
+      // Trial exhausted, show paywall
+      if (!context.mounted) return false;
+      final result = await PaywallScreen.show(context, ref: ref);
+      if (result == true) {
+        final isActive = await _waitForActiveSubscription(ref);
+        if (isActive && context.mounted) {
+          _navigate(context, destination);
           return true;
         }
-      } catch (_) {
-        // Continue to trial check
+      }
+      return false;
+    }
+
+    // 3. Not logged in — use local anonymous trial
+    final uniqueId = '$contentType:$contentId';
+    final prefs = await SharedPreferences.getInstance();
+    final accessedIds = prefs.getStringList(_anonymousTrialKey) ?? [];
+
+    if (accessedIds.contains(uniqueId)) {
+      if (context.mounted) _navigate(context, destination);
+      return true;
+    }
+
+    if (accessedIds.length < _maxAnonymousTrials) {
+      accessedIds.add(uniqueId);
+      await prefs.setStringList(_anonymousTrialKey, accessedIds);
+      if (context.mounted) _navigate(context, destination);
+      return true;
+    }
+
+    // Anonymous trial exhausted — prompt login, then paywall
+    if (!context.mounted) return false;
+    final authService = ref.read(authServiceProvider);
+    await AuthDialog.show(context, authService);
+    if (!context.mounted) return false;
+
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!ref.read(isLoggedInProvider)) return false;
+
+    if (RevenueCatService.isAvailable) {
+      final user = ref.read(currentUserProvider).value;
+      if (user != null) {
+        await RevenueCatService.init(userId: user.id);
       }
     }
 
-    // 3. Logged in but not subscribed - try free trial
+    // After login, check subscription
+    try {
+      ref.invalidate(subscriptionProvider);
+      final subscription = await ref.read(subscriptionProvider.future);
+      if (subscription?.isActive ?? false) {
+        if (context.mounted) _navigate(context, destination);
+        return true;
+      }
+    } catch (_) {}
+
+    // Logged in but not subscribed — check DB trial
     final trialService = ref.read(trialServiceProvider);
     final granted = await trialService.tryAccessContent(contentType, contentId);
 
     if (granted) {
-      // Refresh trial count in providers
       final refreshTrial = ref.read(refreshTrialProvider);
       await refreshTrial();
-
-      if (context.mounted) {
-        _navigate(context, destination);
-      }
+      if (context.mounted) _navigate(context, destination);
       return true;
     }
 
-    // 4. Trial exhausted - show paywall
+    // Show paywall
     if (!context.mounted) return false;
     final result = await PaywallScreen.show(context, ref: ref);
-
-    // If user completed checkout flow, refresh subscription and try again.
-    // On iOS (Apple IAP), the purchase completes in-app but the webhook
-    // may take a few seconds to update the DB. Poll with retries.
     if (result == true) {
       final isActive = await _waitForActiveSubscription(ref);
-
       if (isActive && context.mounted) {
         _navigate(context, destination);
         return true;
@@ -105,8 +129,6 @@ class SubscriptionGate {
     return false;
   }
 
-  /// Poll subscription status with retries.
-  /// On iOS, the RevenueCat webhook may take a moment to reach Supabase.
   static Future<bool> _waitForActiveSubscription(WidgetRef ref) async {
     const maxAttempts = 5;
     const delay = Duration(seconds: 2);

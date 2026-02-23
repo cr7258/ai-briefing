@@ -66,7 +66,7 @@ export default function TermsOfService() {
               3. Free Trial
             </h2>
             <p className="mt-4">
-              Non-subscribed logged-in users may access up to 3 pieces of content for free (the &quot;Free Trial&quot;). This quota is shared across daily briefings and category briefings. Revisiting content you have already accessed does not consume additional quota. No credit card is required for the Free Trial.            </p>
+              All users, including those without an account, may access up to 3 pieces of content for free (the &quot;Free Trial&quot;). No registration or sign-in is required during the Free Trial. This quota is shared across daily briefings and category briefings. Revisiting content you have already accessed does not consume additional quota. No credit card is required for the Free Trial.            </p>
           </section>
 
           {/* 4. Paid Subscriptions */}

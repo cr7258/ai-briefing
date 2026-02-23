@@ -242,15 +242,17 @@ REVENUECAT_WEBHOOK_AUTH_KEY - Shared secret for webhook authorization
 - **Auth**: Google + GitHub + Apple OAuth via Supabase Auth. Web uses implicit flow for session persistence; iOS uses PKCE flow. Apple Sign-In uses native `sign_in_with_apple` SDK on iOS, OAuth on web.
 - **Data access**: Direct Supabase queries via `BriefingService` (no backend API)
 - **Subscription gating**: `SubscriptionGate.navigateIfSubscribed()` checks subscription + trial before navigation
-- **Free trial**: Non-subscribed logged-in users get 3 free content accesses (tracked in `user_trial_access` table via `TrialService`)
+- **Free trial**: All users (including anonymous) get 3 free content accesses. Anonymous users are tracked locally via SharedPreferences; logged-in users are tracked in `user_trial_access` table via `TrialService`.
 - **Paywall**: `PaywallScreen.show()` displays centered dialog with pricing and checkout flow. Platform-aware: Apple IAP on iOS, Creem on web.
 - **Apple IAP (iOS)**: `RevenueCatService` wraps `purchases_flutter` SDK. Initialized in `main.dart` with Supabase user ID. Purchase triggers native Apple payment sheet.
 
 ### Content Gating
 
-- All briefings (including latest): **3 free trials**, then **require subscription** (gated via `SubscriptionGate`)
-- Category briefings: **3 free trials** (shared quota with daily), then **require subscription**
+- All briefings (including latest): **3 free trials** (no login required), then **require login + subscription** (gated via `SubscriptionGate`)
+- Category briefings: **3 free trials** (shared quota with daily), then **require login + subscription**
 - The 3 free trial quota is shared across daily and category briefings, tracked per unique content
+- Anonymous users: trial tracked locally via SharedPreferences (`anonymous_trial_ids`)
+- Logged-in users: trial tracked in `user_trial_access` DB table
 - Revisiting already-accessed trial content does NOT consume additional quota
 - Settings: accessible from avatar dropdown menu (logged-in users)
 

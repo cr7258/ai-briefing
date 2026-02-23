@@ -58,7 +58,7 @@ export default function PrivacyPolicy() {
                   Usage Data
                 </h3>
                 <p className="mt-1">
-                  We collect information about how you interact with the Service, including which briefings you view and your free trial usage (to track your 3 free content accesses).
+                  We collect information about how you interact with the Service, including which briefings you view. For free trial tracking (3 free content accesses), we use local device storage for anonymous users and our database for signed-in users. No account is required to browse content during the free trial.
                 </p>
               </div>
               <div>
@@ -66,7 +66,7 @@ export default function PrivacyPolicy() {
                   Cookies
                 </h3>
                 <p className="mt-1">
-                  We do not use cookies. Authentication session data is stored locally in your browser.
+                  We do not use cookies. Authentication session data and anonymous free trial usage are stored locally in your browser/device.
                 </p>
               </div>
             </div>
