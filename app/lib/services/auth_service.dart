@@ -1,5 +1,9 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
@@ -70,6 +74,40 @@ class AuthService {
       redirectTo: _webRedirectUrl,
       authScreenLaunchMode:
           kIsWeb ? LaunchMode.platformDefault : LaunchMode.inAppBrowserView,
+    );
+  }
+
+  /// Whether Apple Sign-In is available (iOS only)
+  static bool get isAppleSignInAvailable =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
+  /// Sign in with Apple (native iOS only)
+  Future<void> signInWithApple() async {
+    assert(isAppleSignInAvailable, 'Apple Sign-In is only available on iOS');
+    await _saveLastProvider('apple');
+
+    final rawNonce = _supabase.auth.generateRawNonce();
+    final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
+
+    final credential = await SignInWithApple.getAppleIDCredential(
+      scopes: [
+        AppleIDAuthorizationScopes.email,
+        AppleIDAuthorizationScopes.fullName,
+      ],
+      nonce: hashedNonce,
+    );
+
+    final idToken = credential.identityToken;
+    if (idToken == null) {
+      throw const AuthException(
+        'Could not find ID Token from generated credential.',
+      );
+    }
+
+    await _supabase.auth.signInWithIdToken(
+      provider: OAuthProvider.apple,
+      idToken: idToken,
+      nonce: rawNonce,
     );
   }
 

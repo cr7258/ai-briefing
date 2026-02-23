@@ -65,6 +65,15 @@ class _AuthDialogState extends State<AuthDialog> {
   }
 
   List<OAuthProvider> get _providers => [
+        if (AuthService.isAppleSignInAvailable)
+          OAuthProvider(
+            id: 'apple',
+            name: 'Apple',
+            icon: const _AppleIcon(),
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black87,
+            onPressed: () => widget.authService.signInWithApple(),
+          ),
         OAuthProvider(
           id: 'google',
           name: 'Google',
@@ -374,6 +383,20 @@ class _OAuthButton extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Apple icon
+class _AppleIcon extends StatelessWidget {
+  const _AppleIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return const FaIcon(
+      FontAwesomeIcons.apple,
+      size: 20,
+      color: Colors.black87,
     );
   }
 }
