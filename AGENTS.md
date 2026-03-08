@@ -154,7 +154,7 @@ ai-briefing/
 | `articles` | Individual classified news articles | Write | Read |
 | `category_briefings` | Per-category summaries (LLM, Agent, Coding, etc.) | Write | Read |
 | `user_subscriptions` | Subscription status (Creem + Apple IAP) | - | Read (Edge Functions write) |
-| `user_trial_access` | Free trial content access tracking (max 3) | - | Read/Write |
+| `user_trial_access` | Free trial content access tracking (max 10) | - | Read/Write |
 
 ### Categories (article classification)
 
@@ -164,7 +164,7 @@ The AI classifier assigns articles to these categories: `llm`, `agent`, `coding`
 
 - `daily_briefings`, `news_sources`, `articles`, `category_briefings`: Public read (no auth required)
 - `user_subscriptions`: Users can only SELECT their own row; Edge Functions use service_role for writes
-- `user_trial_access`: Users can SELECT and INSERT their own rows (max 3 unique content items)
+- `user_trial_access`: Users can SELECT and INSERT their own rows (max 10 unique content items)
 
 ---
 
@@ -242,15 +242,15 @@ REVENUECAT_WEBHOOK_AUTH_KEY - Shared secret for webhook authorization
 - **Auth**: Email/password + Google + GitHub + Apple OAuth via Supabase Auth. Web uses implicit flow for session persistence; iOS uses PKCE flow. Apple Sign-In uses native `sign_in_with_apple` SDK on iOS, OAuth on web.
 - **Data access**: Direct Supabase queries via `BriefingService` (no backend API)
 - **Subscription gating**: `SubscriptionGate.navigateIfSubscribed()` checks subscription + trial before navigation
-- **Free trial**: All users (including anonymous) get 3 free content accesses. Anonymous users are tracked locally via SharedPreferences; logged-in users are tracked in `user_trial_access` table via `TrialService`.
+- **Free trial**: All users (including anonymous) get 10 free content accesses. Anonymous users are tracked locally via SharedPreferences; logged-in users are tracked in `user_trial_access` table via `TrialService`.
 - **Paywall**: `PaywallScreen.show()` displays centered dialog with pricing and checkout flow. Platform-aware: Apple IAP on iOS, Creem on web.
 - **Apple IAP (iOS)**: `RevenueCatService` wraps `purchases_flutter` SDK. Initialized in `main.dart` with Supabase user ID. Purchase triggers native Apple payment sheet.
 
 ### Content Gating
 
-- All briefings (including latest): **3 free trials** (no login required), then **require login + subscription** (gated via `SubscriptionGate`)
-- Category briefings: **3 free trials** (shared quota with daily), then **require login + subscription**
-- The 3 free trial quota is shared across daily and category briefings, tracked per unique content
+- All briefings (including latest): **10 free trials** (no login required), then **require login + subscription** (gated via `SubscriptionGate`)
+- Category briefings: **10 free trials** (shared quota with daily), then **require login + subscription**
+- The 10 free trial quota is shared across daily and category briefings, tracked per unique content
 - Anonymous users: trial tracked locally via SharedPreferences (`anonymous_trial_ids`)
 - Logged-in users: trial tracked in `user_trial_access` DB table
 - Revisiting already-accessed trial content does NOT consume additional quota

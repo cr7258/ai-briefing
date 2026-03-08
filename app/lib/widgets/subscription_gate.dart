@@ -11,11 +11,11 @@ import '../services/revenuecat_service.dart';
 import 'auth_dialog.dart';
 
 /// Utility to gate navigation behind subscription check.
-/// Anonymous users get 3 free content accesses (tracked locally).
-/// Logged-in non-subscribed users also get 3 free accesses (tracked in DB).
+/// Anonymous users get 10 free content accesses (tracked locally).
+/// Logged-in non-subscribed users also get 10 free accesses (tracked in DB).
 /// Beyond that, subscription is required.
 class SubscriptionGate {
-  static const int _maxAnonymousTrials = 3;
+  static const int _maxAnonymousTrials = 10;
   static const String _anonymousTrialKey = 'anonymous_trial_ids';
 
   static Future<bool> navigateIfSubscribed(

@@ -1,10 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Service for tracking free trial access (max 3 unique briefings)
+/// Service for tracking free trial access (max 10 unique briefings)
 class TrialService {
   final SupabaseClient _client = Supabase.instance.client;
 
-  static const int maxFreeTrials = 3;
+  static const int maxFreeTrials = 10;
 
   /// Get the number of unique briefings the user has accessed for free
   Future<int> getTrialCount() async {

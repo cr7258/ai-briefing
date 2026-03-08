@@ -1,4 +1,4 @@
--- Track free trial access for non-subscribed users (max 3 unique briefings)
+-- Track free trial access for non-subscribed users (max 10 unique briefings)
 CREATE TABLE user_trial_access (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,

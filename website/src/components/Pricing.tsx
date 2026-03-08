@@ -30,7 +30,7 @@ export default function Pricing() {
             Simple, affordable pricing
           </h2>
           <p className="mt-4 font-body text-lg text-text-secondary">
-            Start with 3 free previews. Then unlock unlimited access for less
+            Start with 10 free previews. Then unlock unlimited access for less
             than the price of a coffee.
           </p>
         </div>

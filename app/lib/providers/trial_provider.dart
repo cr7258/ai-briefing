@@ -29,7 +29,7 @@ final trialCountProvider = FutureProvider<int>((ref) async {
   );
 });
 
-/// Remaining free trials (3 - used)
+/// Remaining free trials (10 - used)
 final remainingTrialsProvider = Provider<int>((ref) {
   final countAsync = ref.watch(trialCountProvider);
   return countAsync.maybeWhen(
