@@ -648,7 +648,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // Try stream user first, fall back to in-memory currentUser
           // (session restoration from localStorage may have fuller metadata)
           final avatarUrl = user.userMetadata?['avatar_url'] as String?
-              ?? Supabase.instance.client.auth.currentUser?.userMetadata?['avatar_url'] as String?;
+              ?? user.userMetadata?['picture'] as String?
+              ?? Supabase.instance.client.auth.currentUser?.userMetadata?['avatar_url'] as String?
+              ?? Supabase.instance.client.auth.currentUser?.userMetadata?['picture'] as String?;
           final userName = user.userMetadata?['full_name'] ??
               user.userMetadata?['user_name'] ??
               Supabase.instance.client.auth.currentUser?.userMetadata?['full_name'] ??

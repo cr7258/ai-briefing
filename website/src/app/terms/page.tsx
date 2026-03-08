@@ -56,7 +56,7 @@ export default function TermsOfService() {
               2. Accounts
             </h2>
             <p className="mt-4">
-              To access certain features of the Service, you must sign in using a supported third-party account (Google, GitHub, or Apple) via OAuth. You are responsible for maintaining the security of your account and for all activities that occur under it. We may add or remove supported sign-in providers at any time.
+              To access certain features of the Service, you must create an account using your email address and a password, or sign in using a supported third-party account (Google, GitHub, or Apple). You are responsible for maintaining the security of your account credentials and for all activities that occur under your account. We may add or remove supported sign-in methods at any time.
             </p>
           </section>
 

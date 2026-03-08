@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthException;
 
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
@@ -25,7 +26,9 @@ class OAuthProvider {
   });
 }
 
-/// Beautiful auth dialog with OAuth providers
+enum _AuthMode { oauth, signIn, signUp }
+
+/// Auth dialog with OAuth providers and email sign-in/sign-up
 class AuthDialog extends StatefulWidget {
   final AuthService authService;
 
@@ -51,16 +54,35 @@ class _AuthDialogState extends State<AuthDialog> {
   String? _loadingProviderId;
   String? _lastProviderId;
 
+  _AuthMode _authMode = _AuthMode.oauth;
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isEmailLoading = false;
+  bool _obscurePassword = true;
+
   @override
   void initState() {
     super.initState();
     _loadLastProvider();
   }
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadLastProvider() async {
     final last = await widget.authService.getLastProvider();
     if (mounted) {
-      setState(() => _lastProviderId = last);
+      setState(() {
+        _lastProviderId = last;
+        if (last == 'email') _authMode = _AuthMode.signIn;
+      });
     }
   }
 
@@ -105,12 +127,7 @@ class _AuthDialogState extends State<AuthDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sign in failed: $e'),
-            backgroundColor: AppTheme.error,
-          ),
-        );
+        _showError('Sign in failed: $e');
       }
     } finally {
       if (mounted) {
@@ -120,6 +137,80 @@ class _AuthDialogState extends State<AuthDialog> {
         });
       }
     }
+  }
+
+  Future<void> _handleEmailSubmit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isEmailLoading = true);
+
+    try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
+      if (_authMode == _AuthMode.signUp) {
+        final response =
+            await widget.authService.signUpWithEmail(email, password);
+        if (mounted) {
+          // If email confirmation is enabled, user won't be signed in yet
+          if (response.user?.emailConfirmedAt == null) {
+            _showSuccess('Check your email for a verification link');
+            setState(() => _authMode = _AuthMode.signIn);
+          } else {
+            Navigator.of(context).pop();
+          }
+        }
+      } else {
+        await widget.authService.signInWithEmail(email, password);
+        if (mounted) Navigator.of(context).pop();
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        if (_authMode == _AuthMode.signIn &&
+            e.message.toLowerCase().contains('invalid login credentials')) {
+          _showError('No account found with this email. Switching to sign up…');
+          setState(() => _authMode = _AuthMode.signUp);
+        } else {
+          _showError(e.message);
+        }
+      }
+    } catch (e) {
+      if (mounted) _showError('$e');
+    } finally {
+      if (mounted) setState(() => _isEmailLoading = false);
+    }
+  }
+
+  Future<void> _handleForgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _showError('Enter your email address first');
+      return;
+    }
+
+    setState(() => _isEmailLoading = true);
+    try {
+      await widget.authService.resetPassword(email);
+      if (mounted) _showSuccess('Password reset link sent to $email');
+    } on AuthException catch (e) {
+      if (mounted) _showError(e.message);
+    } catch (e) {
+      if (mounted) _showError('$e');
+    } finally {
+      if (mounted) setState(() => _isEmailLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppTheme.error),
+    );
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppTheme.success),
+    );
   }
 
   @override
@@ -148,7 +239,6 @@ class _AuthDialogState extends State<AuthDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Close button
             Align(
               alignment: Alignment.topRight,
               child: IconButton(
@@ -164,10 +254,7 @@ class _AuthDialogState extends State<AuthDialog> {
                 ),
               ),
             ),
-
             const SizedBox(height: 8),
-
-            // Logo
             Container(
               width: 64,
               height: 64,
@@ -192,10 +279,7 @@ class _AuthDialogState extends State<AuthDialog> {
                   duration: 400.ms,
                   curve: Curves.easeOutBack,
                 ),
-
             const SizedBox(height: 24),
-
-            // Title
             Text(
               'Welcome to AI Briefing',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -204,39 +288,26 @@ class _AuthDialogState extends State<AuthDialog> {
                   ),
               textAlign: TextAlign.center,
             ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
-
             const SizedBox(height: 8),
-
-            // Subtitle
             Text(
-              'Sign in to access personalized features',
+              _authMode == _AuthMode.signUp
+                  ? 'Create your account'
+                  : 'Sign in to access personalized features',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppTheme.textSecondary,
                   ),
               textAlign: TextAlign.center,
             ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
-
             const SizedBox(height: 32),
-
-            // OAuth Buttons
-            ..._providers.asMap().entries.map((entry) {
-              final index = entry.key;
-              final provider = entry.value;
-              return Padding(
-                padding: EdgeInsets.only(bottom: index < _providers.length - 1 ? 12 : 0),
-                child: _OAuthButton(
-                  provider: provider,
-                  isLoading: _loadingProviderId == provider.id,
-                  isDisabled: _isLoading,
-                  isLastUsed: _lastProviderId == provider.id,
-                  onPressed: () => _handleSignIn(provider),
-                ).animate().fadeIn(delay: (300 + index * 100).ms).slideY(begin: 0.2, end: 0),
-              );
-            }),
-
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              child: _authMode == _AuthMode.oauth
+                  ? _buildOAuthView()
+                  : _buildEmailView(),
+            ),
             const SizedBox(height: 24),
-
-            // Footer text
             Text(
               'By signing in, you agree to our Terms of Service and Privacy Policy',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -248,6 +319,369 @@ class _AuthDialogState extends State<AuthDialog> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildOAuthView() {
+    return Column(
+      key: const ValueKey('oauth'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ..._providers.asMap().entries.map((entry) {
+          final index = entry.key;
+          final provider = entry.value;
+          return Padding(
+            padding: EdgeInsets.only(
+                bottom: index < _providers.length - 1 ? 12 : 0),
+            child: _OAuthButton(
+              provider: provider,
+              isLoading: _loadingProviderId == provider.id,
+              isDisabled: _isLoading,
+              isLastUsed:
+                  _lastProviderId == provider.id && _lastProviderId != 'email',
+              onPressed: () => _handleSignIn(provider),
+            ).animate().fadeIn(delay: (300 + index * 100).ms).slideY(
+                  begin: 0.2,
+                  end: 0,
+                ),
+          );
+        }),
+        const SizedBox(height: 20),
+        _OrDivider(),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: OutlinedButton.icon(
+            onPressed: () => setState(() => _authMode = _AuthMode.signIn),
+            icon: const Icon(Icons.email_outlined, size: 20),
+            label: Text(
+              'Continue with email',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.textPrimary,
+              side: BorderSide(
+                color: _lastProviderId == 'email'
+                    ? AppTheme.primary.withOpacity(0.5)
+                    : AppTheme.border,
+                width: _lastProviderId == 'email' ? 1.5 : 1,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmailView() {
+    final isSignUp = _authMode == _AuthMode.signUp;
+
+    return KeyedSubtree(
+      key: const ValueKey('email'),
+      child: Form(
+        key: _formKey,
+        autovalidateMode: AutovalidateMode.disabled,
+        child: AutofillGroup(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _StyledTextField(
+              controller: _emailController,
+              hintText: 'Email address',
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
+              textInputAction: TextInputAction.next,
+              prefixIcon: Icons.email_outlined,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Email is required';
+                }
+                if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                    .hasMatch(value.trim())) {
+                  return 'Enter a valid email';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            _StyledTextField(
+              controller: _passwordController,
+              hintText: 'Password',
+              obscureText: _obscurePassword,
+              autofillHints: [
+                isSignUp
+                    ? AutofillHints.newPassword
+                    : AutofillHints.password,
+              ],
+              textInputAction:
+                  isSignUp ? TextInputAction.next : TextInputAction.done,
+              prefixIcon: Icons.lock_outline,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  size: 20,
+                  color: AppTheme.textTertiary,
+                ),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
+              ),
+              onFieldSubmitted: isSignUp ? null : (_) => _handleEmailSubmit(),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Password is required';
+                }
+                if (value.length < 6) {
+                  return 'At least 6 characters';
+                }
+                return null;
+              },
+            ),
+            if (isSignUp) ...[
+              const SizedBox(height: 12),
+              _StyledTextField(
+                controller: _confirmPasswordController,
+                hintText: 'Confirm password',
+                obscureText: _obscurePassword,
+                autofillHints: const [AutofillHints.newPassword],
+                textInputAction: TextInputAction.done,
+                prefixIcon: Icons.lock_outline,
+                onFieldSubmitted: (_) => _handleEmailSubmit(),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please confirm your password';
+                  }
+                  if (value != _passwordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
+              ),
+            ],
+            if (!isSignUp) ...[
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _isEmailLoading ? null : _handleForgotPassword,
+                  style: TextButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    'Forgot password?',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 13,
+                      color: AppTheme.textTertiary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ] else
+              const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: _isEmailLoading ? null : _handleEmailSubmit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.black,
+                  disabledBackgroundColor: AppTheme.primary.withOpacity(0.5),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isEmailLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.black,
+                        ),
+                      )
+                    : Text(
+                        isSignUp ? 'Create account' : 'Sign in',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  isSignUp
+                      ? 'Already have an account?'
+                      : "Don't have an account?",
+                  style: GoogleFonts.dmSans(
+                    fontSize: 13,
+                    color: AppTheme.textTertiary,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _authMode =
+                        isSignUp ? _AuthMode.signIn : _AuthMode.signUp;
+                  }),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    isSignUp ? 'Sign in' : 'Sign up',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _OrDivider(),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => setState(() => _authMode = _AuthMode.oauth),
+              icon: const Icon(Icons.arrow_back_rounded, size: 16),
+              label: Text(
+                'Back to social login',
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.textSecondary,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+    );
+  }
+}
+
+class _StyledTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hintText;
+  final TextInputType? keyboardType;
+  final bool obscureText;
+  final List<String>? autofillHints;
+  final TextInputAction? textInputAction;
+  final IconData? prefixIcon;
+  final Widget? suffixIcon;
+  final String? Function(String?)? validator;
+  final void Function(String)? onFieldSubmitted;
+
+  const _StyledTextField({
+    required this.controller,
+    required this.hintText,
+    this.keyboardType,
+    this.obscureText = false,
+    this.autofillHints,
+    this.textInputAction,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.validator,
+    this.onFieldSubmitted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      autofillHints: autofillHints,
+      textInputAction: textInputAction,
+      validator: validator,
+      onFieldSubmitted: onFieldSubmitted,
+      style: GoogleFonts.dmSans(
+        fontSize: 15,
+        color: AppTheme.textPrimary,
+      ),
+      cursorColor: AppTheme.primary,
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: GoogleFonts.dmSans(
+          fontSize: 15,
+          color: AppTheme.textMuted,
+        ),
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon, size: 20, color: AppTheme.textTertiary)
+            : null,
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: AppTheme.surface,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.error, width: 1.5),
+        ),
+        errorStyle: GoogleFonts.dmSans(fontSize: 12, color: AppTheme.error),
+      ),
+    );
+  }
+}
+
+class _OrDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: Divider(color: AppTheme.border, height: 1)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'or',
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              color: AppTheme.textTertiary,
+            ),
+          ),
+        ),
+        Expanded(child: Divider(color: AppTheme.border, height: 1)),
+      ],
     );
   }
 }
@@ -273,7 +707,6 @@ class _OAuthButton extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Subtle glow behind button when last used
         if (isLastUsed)
           Positioned.fill(
             child: Container(
@@ -297,7 +730,8 @@ class _OAuthButton extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: provider.backgroundColor,
               foregroundColor: provider.foregroundColor,
-              disabledBackgroundColor: provider.backgroundColor.withOpacity(0.5),
+              disabledBackgroundColor:
+                  provider.backgroundColor.withOpacity(0.5),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -337,7 +771,6 @@ class _OAuthButton extends StatelessWidget {
                   ),
           ),
         ),
-        // Floating "Last used" badge
         if (isLastUsed)
           Positioned(
             top: -9,
@@ -437,38 +870,43 @@ class _GoogleLogoPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final double s = size.width / 24;
 
-    // Blue
     final bluePath = Path()
       ..moveTo(21.35 * s, 11.1 * s)
-      ..cubicTo(21.35 * s, 10.36 * s, 21.28 * s, 9.64 * s, 21.16 * s, 8.95 * s)
+      ..cubicTo(
+          21.35 * s, 10.36 * s, 21.28 * s, 9.64 * s, 21.16 * s, 8.95 * s)
       ..lineTo(12 * s, 8.95 * s)
       ..lineTo(12 * s, 13.02 * s)
       ..lineTo(17.24 * s, 13.02 * s)
-      ..cubicTo(17.01 * s, 14.26 * s, 16.28 * s, 15.31 * s, 15.22 * s, 16.01 * s)
+      ..cubicTo(
+          17.01 * s, 14.26 * s, 16.28 * s, 15.31 * s, 15.22 * s, 16.01 * s)
       ..lineTo(15.22 * s, 18.45 * s)
       ..lineTo(18.41 * s, 18.45 * s)
-      ..cubicTo(20.28 * s, 16.73 * s, 21.35 * s, 14.17 * s, 21.35 * s, 11.1 * s)
+      ..cubicTo(
+          20.28 * s, 16.73 * s, 21.35 * s, 14.17 * s, 21.35 * s, 11.1 * s)
       ..close();
     canvas.drawPath(bluePath, Paint()..color = const Color(0xFF4285F4));
 
-    // Green
     final greenPath = Path()
       ..moveTo(12 * s, 21 * s)
-      ..cubicTo(14.7 * s, 21 * s, 16.96 * s, 20.1 * s, 18.41 * s, 18.45 * s)
+      ..cubicTo(
+          14.7 * s, 21 * s, 16.96 * s, 20.1 * s, 18.41 * s, 18.45 * s)
       ..lineTo(15.22 * s, 16.01 * s)
-      ..cubicTo(14.35 * s, 16.59 * s, 13.26 * s, 16.93 * s, 12 * s, 16.93 * s)
-      ..cubicTo(9.39 * s, 16.93 * s, 7.19 * s, 15.2 * s, 6.44 * s, 12.91 * s)
+      ..cubicTo(
+          14.35 * s, 16.59 * s, 13.26 * s, 16.93 * s, 12 * s, 16.93 * s)
+      ..cubicTo(
+          9.39 * s, 16.93 * s, 7.19 * s, 15.2 * s, 6.44 * s, 12.91 * s)
       ..lineTo(3.15 * s, 12.91 * s)
       ..lineTo(3.15 * s, 15.42 * s)
       ..cubicTo(4.63 * s, 18.38 * s, 8.09 * s, 21 * s, 12 * s, 21 * s)
       ..close();
     canvas.drawPath(greenPath, Paint()..color = const Color(0xFF34A853));
 
-    // Yellow
     final yellowPath = Path()
       ..moveTo(6.44 * s, 12.91 * s)
-      ..cubicTo(6.24 * s, 12.33 * s, 6.12 * s, 11.7 * s, 6.12 * s, 11.05 * s)
-      ..cubicTo(6.12 * s, 10.4 * s, 6.24 * s, 9.77 * s, 6.44 * s, 9.19 * s)
+      ..cubicTo(
+          6.24 * s, 12.33 * s, 6.12 * s, 11.7 * s, 6.12 * s, 11.05 * s)
+      ..cubicTo(
+          6.12 * s, 10.4 * s, 6.24 * s, 9.77 * s, 6.44 * s, 9.19 * s)
       ..lineTo(6.44 * s, 6.68 * s)
       ..lineTo(3.15 * s, 6.68 * s)
       ..cubicTo(2.42 * s, 8.12 * s, 2 * s, 9.74 * s, 2 * s, 11.05 * s)
@@ -477,15 +915,18 @@ class _GoogleLogoPainter extends CustomPainter {
       ..close();
     canvas.drawPath(yellowPath, Paint()..color = const Color(0xFFFBBC05));
 
-    // Red
     final redPath = Path()
       ..moveTo(12 * s, 5.17 * s)
-      ..cubicTo(13.4 * s, 5.17 * s, 14.65 * s, 5.66 * s, 15.64 * s, 6.59 * s)
+      ..cubicTo(
+          13.4 * s, 5.17 * s, 14.65 * s, 5.66 * s, 15.64 * s, 6.59 * s)
       ..lineTo(18.46 * s, 3.77 * s)
-      ..cubicTo(16.95 * s, 2.36 * s, 14.7 * s, 1.1 * s, 12 * s, 1.1 * s)
-      ..cubicTo(8.09 * s, 1.1 * s, 4.63 * s, 3.72 * s, 3.15 * s, 6.68 * s)
+      ..cubicTo(
+          16.95 * s, 2.36 * s, 14.7 * s, 1.1 * s, 12 * s, 1.1 * s)
+      ..cubicTo(
+          8.09 * s, 1.1 * s, 4.63 * s, 3.72 * s, 3.15 * s, 6.68 * s)
       ..lineTo(6.44 * s, 9.19 * s)
-      ..cubicTo(7.19 * s, 6.9 * s, 9.39 * s, 5.17 * s, 12 * s, 5.17 * s)
+      ..cubicTo(
+          7.19 * s, 6.9 * s, 9.39 * s, 5.17 * s, 12 * s, 5.17 * s)
       ..close();
     canvas.drawPath(redPath, Paint()..color = const Color(0xFFEA4335));
   }
@@ -493,4 +934,3 @@ class _GoogleLogoPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

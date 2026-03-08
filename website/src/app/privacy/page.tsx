@@ -42,7 +42,7 @@ export default function PrivacyPolicy() {
                   Account Information
                 </h3>
                 <p className="mt-1">
-                  When you sign in via a third-party provider (Google, GitHub, or Apple), we receive your name, email address, and profile avatar from that provider. We do not receive or store your passwords. When using Sign in with Apple, you may choose to hide your email address; in that case, Apple provides a private relay email. The specific information we receive depends on the provider you use and your account settings with that provider.
+                  You may create an account using your email address and a password, or sign in via a third-party provider (Google, GitHub, or Apple). When you register with email, we store your email address and a securely hashed password — we never store passwords in plain text. When you sign in via a third-party provider, we receive your name, email address, and profile avatar from that provider. When using Sign in with Apple, you may choose to hide your email address; in that case, Apple provides a private relay email. The specific information we receive depends on the method you use and your account settings with any third-party provider.
                 </p>
               </div>
               <div>

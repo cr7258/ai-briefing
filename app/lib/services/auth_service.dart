@@ -111,6 +111,33 @@ class AuthService {
     );
   }
 
+  /// Sign up with email and password
+  Future<AuthResponse> signUpWithEmail(String email, String password) async {
+    await _saveLastProvider('email');
+    return await _supabase.auth.signUp(
+      email: email,
+      password: password,
+      emailRedirectTo: _webRedirectUrl,
+    );
+  }
+
+  /// Sign in with email and password
+  Future<AuthResponse> signInWithEmail(String email, String password) async {
+    await _saveLastProvider('email');
+    return await _supabase.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  /// Send password reset email
+  Future<void> resetPassword(String email) async {
+    await _supabase.auth.resetPasswordForEmail(
+      email,
+      redirectTo: _webRedirectUrl,
+    );
+  }
+
   /// Sign out
   Future<void> signOut() async {
     await _supabase.auth.signOut();
